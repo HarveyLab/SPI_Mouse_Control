@@ -372,7 +372,7 @@ void dispRegisters2(void){
   digitalWrite(ncs2,HIGH);
 }
 
-int readXY(int *xy){
+void readXY(int *xy){
   //digitalWrite(ncs,LOW);
   
   Motion = (adns_read_reg(REG_Motion) & (1 << (8-1))) != 0;
@@ -393,7 +393,7 @@ int readXY(int *xy){
   //digitalWrite(ncs,HIGH);     
 }
 
-int readXY2(int *xy){
+void readXY2(int *xy){
   //digitalWrite(ncs2,LOW);
   
   Motion = (adns2_read_reg(REG_Motion) & (1 << (8-1))) != 0;
