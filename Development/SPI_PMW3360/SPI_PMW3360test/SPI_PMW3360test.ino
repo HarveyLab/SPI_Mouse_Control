@@ -6,6 +6,15 @@
 #include <SPI.h>
 #include <avr/pgmspace.h>
 
+byte initComplete=0;
+byte Mot = 0;
+byte xH;
+byte xL;
+byte yH;
+byte yL;
+int xCum = 0;
+int yCum = 0;
+
 // Registers
 #define Product_ID  0x00
 #define Revision_ID 0x01
@@ -58,12 +67,11 @@
 #define LiftCutoff_Tune2  0x65
 
 //Set this to what pin your "INT0" hardware interrupt feature is on
-#define Motion_Interrupt_Pin 9
+#define Motion_Interrupt_Pin 18
 
-const int ncs = 10;  //This is the SPI "slave select" pin that the sensor is hooked up to
+const int ncs = 0;  //This is the SPI "slave select" pin that the sensor is hooked up to
 
-byte initComplete=0;
-volatile int xydat[2];
+int xydat[2];
 volatile byte movementflag=0;
 byte testctr=0;
 unsigned long currTime;
@@ -75,13 +83,13 @@ extern const unsigned short firmware_length;
 extern const unsigned char firmware_data[];
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(38400);
   
   pinMode (ncs, OUTPUT);
   
-  pinMode(Motion_Interrupt_Pin, INPUT);
-  digitalWrite(Motion_Interrupt_Pin, HIGH);
-  attachInterrupt(9, UpdatePointer, FALLING);
+  // pinMode(Motion_Interrupt_Pin, INPUT);
+  // digitalWrite(Motion_Interrupt_Pin, HIGH);
+  // attachInterrupt(9, UpdatePointer, FALLING);
 
   SPI.begin();
   SPI.setDataMode(SPI_MODE3);
@@ -172,7 +180,7 @@ void adns_upload_firmware(){
   adns_write_reg(Config2, 0x00);
 
   // set initial CPI resolution
-  adns_write_reg(Config1, 0x15);
+  adns_write_reg(Config1, 0x78); // Max resolution at 12000 cpi
   
   adns_com_end();
   }
@@ -199,6 +207,8 @@ void performStartup(void){
 void UpdatePointer(void){
   if(initComplete==9){
 
+    digitalWrite(ncs,LOW);
+
     //write 0x01 to Motion register and read from it to freeze the motion values and make them available
     adns_write_reg(Motion, 0x01);
     adns_read_reg(Motion);
@@ -207,14 +217,16 @@ void UpdatePointer(void){
     xydat[1] = (int)adns_read_reg(Delta_Y_L);
     
     movementflag=1;
+
+    digitalWrite(ncs,HIGH);
     }
   }
 
 void dispRegisters(void){
   int oreg[7] = {
-    0x00,0x3F,0x2A,0x02  };
-  char* oregname[] = {
-    "Product_ID","Inverse_Product_ID","SROM_Version","Motion"  };
+    0x00,0x3F,0x2A,0x0F  };
+  const char* oregname[] = {
+    "Product_ID","Inverse_Product_ID","SROM_Version","CPI"  };
   byte regres;
 
   digitalWrite(ncs,LOW);
@@ -243,29 +255,51 @@ int convTwosComp(int b){
   return b;
   }
   
+void readXY(int *xy){
+  digitalWrite(ncs,LOW);
+  
+  Mot = (adns_read_reg(Motion) & (1 << (8-1))) != 0;
+  xL = adns_read_reg(Delta_X_L);
+  xH = adns_read_reg(Delta_X_H);
+  yL = adns_read_reg(Delta_Y_L);
+  yH = adns_read_reg(Delta_Y_H);
+  xy[0] = (xH << 8) + xL;
+  xy[1] = (yH << 8) + yL;
+
+  if(xy[0] & 0x8000){
+    xy[0] = -1 * ((xy[0] ^ 0xffff) + 1);
+  }
+  if (xy[1] & 0x8000){
+    xy[1] = -1 * ((xy[1] ^ 0xffff) + 1);
+  }
+  
+  Serial.println("Converted x: " + String(xy[0]));
+  Serial.println("Converted y: " + String(xy[1]));
+
+  digitalWrite(ncs,HIGH);     
+  }
+
 
 void loop() {
 
-  currTime = millis();
+  Mot = (adns_read_reg(Motion) & (1 << (8-1))) != 0;
+
+  // int xydat[2];
+  UpdatePointer();
+  xydat[0] = convTwosComp(xydat[0]);
+  xydat[1] = convTwosComp(xydat[1]);
+
+  // readXY(&xydat[0]);
+  xCum = xCum + xydat[0];
+  yCum = yCum + xydat[1];
   
-  if(currTime > timer){    
-    Serial.println(testctr++);
-    timer = currTime + 2000;
-    }
-    
-  if(currTime > pollTimer){
-    UpdatePointer();
-    xydat[0] = convTwosComp(xydat[0]);
-    xydat[1] = convTwosComp(xydat[1]);
-      if(xydat[0] != 0 || xydat[1] != 0){
-        Serial.print("x = ");
-        Serial.print(xydat[0]);
-        Serial.print(" | ");
-        Serial.print("y = ");
-        Serial.println(xydat[1]);
-        }
-    pollTimer = currTime + 20;
-    }
+  Serial.println("Prod ID = " + String(adns_read_reg(Product_ID)));
+  Serial.println("Motion = " + String(Mot));
+  Serial.println("intX = " + String(xCum));
+  Serial.println("intY = " + String(yCum));
+  Serial.println("Squal = " + String(adns_read_reg(SQUAL)));
+  
+  delay(10);
     
   }
 
