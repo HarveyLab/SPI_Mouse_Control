@@ -72,6 +72,7 @@ int yCum = 0;
 const int ncs = 0;  //This is the SPI "slave select" pin that the sensor is hooked up to
 
 int xydat[2];
+int xy2dat[2];
 volatile byte movementflag=0;
 byte testctr=0;
 unsigned long currTime;
@@ -99,6 +100,9 @@ void setup() {
 
   
   performStartup();  
+  delay(10);
+  performStartup2();
+  delay(10);
   
   delay(5000);
   
@@ -146,7 +150,7 @@ void adns_write_reg(byte reg_addr, byte data){
 
 void adns_upload_firmware(){
   // send the firmware to the chip, cf p.18 of the datasheet
-  Serial.println("Uploading firmware...");
+  Serial.println("Uploading firmware to chip 1...");
 
   //Write 0 to Rest_En bit of Config2 register to disable Rest mode.
   adns_write_reg(Config2, 0x20);
@@ -181,8 +185,51 @@ void adns_upload_firmware(){
 
   // set initial CPI resolution
   adns_write_reg(Config1, 0x78); // Max resolution at 12000 cpi
+  delay(10);
   
-  adns_com_end();
+  adns_com_end();										  
+  }
+  
+  void adns2_upload_firmware(){
+  // send the firmware to the chip, cf p.18 of the datasheet
+  Serial.println("Uploading firmware to chip 2...");
+
+  //Write 0 to Rest_En bit of Config2 register to disable Rest mode.
+  adns2_write_reg(Config2, 0x20);
+  
+  // write 0x1d in SROM_enable reg for initializing
+  adns2_write_reg(SROM_Enable, 0x1d); 
+  
+  // wait for more than one frame period
+  delay(10); // assume that the frame rate is as low as 100fps... even if it should never be that low
+  
+  // write 0x18 to SROM_enable to start SROM download
+  adns2_write_reg(SROM_Enable, 0x18); 
+  
+  // write the SROM file (=firmware data) 
+  adns2_com_begin();
+  SPI.transfer(SROM_Load_Burst | 0x80); // write burst destination adress
+  delayMicroseconds(15);
+  
+  // send all bytes of the firmware
+  unsigned char c;
+  for(int i = 0; i < firmware_length; i++){ 
+    c = (unsigned char)pgm_read_byte(firmware_data + i);
+    SPI.transfer(c);
+    delayMicroseconds(15);
+  }
+
+  //Read the SROM_ID register to verify the ID before any other register reads or writes.
+  adns2_read_reg(SROM_ID);
+
+  //Write 0x00 to Config2 register for wired mouse or 0x20 for wireless mouse design.
+  adns2_write_reg(Config2, 0x00);
+
+  // set initial CPI resolution
+  adns2_write_reg(Config1, 0x78); // Max resolution at 12000 cpi
+  delay(1500); 								
+  
+  adns2_com_end();				  
   }
 
 
@@ -201,7 +248,25 @@ void performStartup(void){
   // upload the firmware
   adns_upload_firmware();
   delay(10);
-  Serial.println("Optical Chip Initialized");
+  Serial.println("Optical Chip 1 Initialized");
+  }
+  
+  void performStartup2(void){
+  adns2_com_end(); // ensure that the serial port is reset
+  adns2_com_begin(); // ensure that the serial port is reset
+  adns2_com_end(); // ensure that the serial port is reset
+  adns2_write_reg(Power_Up_Reset, 0x5a); // force reset
+  delay(50); // wait for it to reboot
+  // read registers 0x02 to 0x06 (and discard the data)
+  adns2_read_reg(Motion);
+  adns2_read_reg(Delta_X_L);
+  adns2_read_reg(Delta_X_H);
+  adns2_read_reg(Delta_Y_L);
+  adns2_read_reg(Delta_Y_H);
+  // upload the firmware
+  adns2_upload_firmware();
+  delay(10);
+  Serial.println("Optical Chip 2 Initialized");
   }
 
 void UpdatePointer(void){
@@ -219,6 +284,24 @@ void UpdatePointer(void){
     movementflag=1;
 
     digitalWrite(ncs,HIGH);
+    }
+  }
+  
+  void UpdatePointer2(void){
+  if(initComplete==9){
+
+    digitalWrite(ncs2,LOW);
+
+    //write 0x01 to Motion register and read from it to freeze the motion values and make them available
+    adns2_write_reg(Motion, 0x01);
+    adns2_read_reg(Motion);
+
+    xy2dat[0] = (int)adns2_read_reg(Delta_X_L);
+    xy2dat[1] = (int)adns2_read_reg(Delta_Y_L);
+    
+    movementflag=1;
+
+    digitalWrite(ncs2,HIGH);
     }
   }
 
@@ -246,6 +329,30 @@ void dispRegisters(void){
   digitalWrite(ncs,HIGH);
 }
 
+void dispRegisters2(void){
+  int oreg[7] = {
+    0x00,0x3F,0x2A,0x0F  };
+  const char* oregname[] = {
+    "Product_ID","Inverse_Product_ID","SROM_Version","CPI"  };
+  byte regres;
+
+  digitalWrite(ncs2,LOW);
+
+  int rctr=0;
+  for(rctr=0; rctr<4; rctr++){
+    SPI.transfer(oreg[rctr]);
+    delay(1);
+    Serial.println("---");
+    Serial.println(oregname[rctr]);
+    Serial.println(oreg[rctr],HEX);
+    regres = SPI.transfer(0);
+    Serial.println(regres,BIN);  
+    Serial.println(regres,HEX);  
+    delay(1);
+  }
+  digitalWrite(ncs2,HIGH);
+}
+
 
 int convTwosComp(int b){
   //Convert from 2's complement
@@ -253,30 +360,6 @@ int convTwosComp(int b){
     b = -1 * ((b ^ 0xff) + 1);
     }
   return b;
-  }
-  
-void readXY(int *xy){
-  digitalWrite(ncs,LOW);
-  
-  Mot = (adns_read_reg(Motion) & (1 << (8-1))) != 0;
-  xL = adns_read_reg(Delta_X_L);
-  xH = adns_read_reg(Delta_X_H);
-  yL = adns_read_reg(Delta_Y_L);
-  yH = adns_read_reg(Delta_Y_H);
-  xy[0] = (xH << 8) + xL;
-  xy[1] = (yH << 8) + yL;
-
-  if(xy[0] & 0x8000){
-    xy[0] = -1 * ((xy[0] ^ 0xffff) + 1);
-  }
-  if (xy[1] & 0x8000){
-    xy[1] = -1 * ((xy[1] ^ 0xffff) + 1);
-  }
-  
-  Serial.println("Converted x: " + String(xy[0]));
-  Serial.println("Converted y: " + String(xy[1]));
-
-  digitalWrite(ncs,HIGH);     
   }
 
 
