@@ -7,13 +7,13 @@
 #include <avr/pgmspace.h>
 
 byte initComplete=0;
-byte Mot = 0;
+byte Mot1 = 0;
 byte Mot2 = 0;
 byte xH;
 byte xL;
 byte yH;
 byte yL;
-int xydat[2];
+int xy1dat[2];
 int xy2dat[2];
 double dP;
 double dR;
@@ -28,7 +28,7 @@ int y1Cum = 0;
 int x2Cum = 0;
 int y2Cum = 0;
 
-const int ncs = 0;  //This is the SPI "slave select" pin that the sensor is hooked up to
+const int ncs1 = 0;  //This is the SPI "slave select" pin that the sensor is hooked up to
 const int ncs2 = 1;
 const int pVelPin = 3;
 const int rVelPin = 4;
@@ -111,12 +111,12 @@ void setup() {
   analogWriteFrequency(rVelPin,11500);
   analogWriteFrequency(yVelPin,11500);
   analogWriteResolution(12);
-  pinMode (ncs, OUTPUT);
+  pinMode (ncs1, OUTPUT);
   pinMode (ncs2, OUTPUT);
   
   // pinMode(Motion_Interrupt_Pin, INPUT);
   // digitalWrite(Motion_Interrupt_Pin, HIGH);
-  // attachInterrupt(9, UpdatePointer, FALLING);
+  // attachInterrupt(9, UpdatePointer1, FALLING);
 
   SPI.begin();
   SPI.setDataMode(SPI_MODE3);
@@ -124,15 +124,15 @@ void setup() {
   SPI.setClockDivider(SPI_CLOCK_DIV128);
   //SPI.setClockDivider(4);
 
-  // Resulution is set in performStartup > adns_upload_firmware
+  // Resulution is set in performStartup1 > adns1_upload_firmware
   delay(1000);
-  performStartup();  
+  performStartup1();  
   delay(10);
   performStartup2();
   delay(10);
   
   delay(1500);
-  dispRegisters();
+  dispRegisters1();
   delay(1500);
   dispRegisters2();
   delay(1500);
@@ -140,24 +140,24 @@ void setup() {
 
 }
 
-void adns_com_begin(){
-  digitalWrite(ncs, LOW);
+void adns1_com_begin(){
+  digitalWrite(ncs1, LOW);
 }
 
 void adns2_com_begin(){
   digitalWrite(ncs2, LOW);
 }
 
-void adns_com_end(){
-  digitalWrite(ncs, HIGH);
+void adns1_com_end(){
+  digitalWrite(ncs1, HIGH);
 }
 
 void adns2_com_end(){
   digitalWrite(ncs2, HIGH);
 }
 
-byte adns_read_reg(byte reg_addr){
-  adns_com_begin();
+byte adns1_read_reg(byte reg_addr){
+  adns1_com_begin();
   
   // send adress of the register, with MSBit = 0 to indicate it's a read
   SPI.transfer(reg_addr & 0x7f );
@@ -165,9 +165,9 @@ byte adns_read_reg(byte reg_addr){
   // read data
   byte data = SPI.transfer(0);
   
-  delayMicroseconds(1); // tSCLK-NCS for read operation is 120ns
-  adns_com_end();
-  delayMicroseconds(19); //  tSRW/tSRR (=20us) minus tSCLK-NCS
+  delayMicroseconds(1); // tSCLK-ncs1 for read operation is 120ns
+  adns1_com_end();
+  delayMicroseconds(19); //  tSRW/tSRR (=20us) minus tSCLK-ncs1
 
   return data;
 }
@@ -181,23 +181,23 @@ byte adns2_read_reg(byte reg_addr){
   // read data
   byte data = SPI.transfer(0);
   
-  delayMicroseconds(1); // tSCLK-NCS for read operation is 120ns
+  delayMicroseconds(1); // tSCLK-ncs1 for read operation is 120ns
   adns2_com_end();
-  delayMicroseconds(19); //  tSRW/tSRR (=20us) minus tSCLK-NCS
+  delayMicroseconds(19); //  tSRW/tSRR (=20us) minus tSCLK-ncs1
 
   return data;
 }																	
-void adns_write_reg(byte reg_addr, byte data){
-  adns_com_begin();
+void adns1_write_reg(byte reg_addr, byte data){
+  adns1_com_begin();
   
   //send adress of the register, with MSBit = 1 to indicate it's a write
   SPI.transfer(reg_addr | 0x80 );
   //sent data
   SPI.transfer(data);
   
-  delayMicroseconds(20); // tSCLK-NCS for write operation
-  adns_com_end();
-  delayMicroseconds(100); // tSWW/tSWR (=120us) minus tSCLK-NCS. Could be shortened, but is looks like a safe lower bound 
+  delayMicroseconds(20); // tSCLK-ncs1 for write operation
+  adns1_com_end();
+  delayMicroseconds(100); // tSWW/tSWR (=120us) minus tSCLK-ncs1. Could be shortened, but is looks like a safe lower bound 
 }
 
 void adns2_write_reg(byte reg_addr, byte data){
@@ -208,29 +208,29 @@ void adns2_write_reg(byte reg_addr, byte data){
   //sent data
   SPI.transfer(data);
   
-  delayMicroseconds(20); // tSCLK-NCS for write operation
+  delayMicroseconds(20); // tSCLK-ncs1 for write operation
   adns2_com_end();
-  delayMicroseconds(100); // tSWW/tSWR (=120us) minus tSCLK-NCS. Could be shortened, but is looks like a safe lower bound 
+  delayMicroseconds(100); // tSWW/tSWR (=120us) minus tSCLK-ncs1. Could be shortened, but is looks like a safe lower bound 
 }		
 																
-void adns_upload_firmware(){
+void adns1_upload_firmware(){
   // send the firmware to the chip, cf p.18 of the datasheet
   Serial.println("Uploading firmware to chip 1...");
 
   //Write 0 to Rest_En bit of Config2 register to disable Rest mode.
-  adns_write_reg(Config2, 0x20);
+  adns1_write_reg(Config2, 0x20);
   
   // write 0x1d in SROM_enable reg for initializing
-  adns_write_reg(SROM_Enable, 0x1d); 
+  adns1_write_reg(SROM_Enable, 0x1d); 
   
   // wait for more than one frame period
   delay(10); // assume that the frame rate is as low as 100fps... even if it should never be that low
   
   // write 0x18 to SROM_enable to start SROM download
-  adns_write_reg(SROM_Enable, 0x18); 
+  adns1_write_reg(SROM_Enable, 0x18); 
   
   // write the SROM file (=firmware data) 
-  adns_com_begin();
+  adns1_com_begin();
   SPI.transfer(SROM_Load_Burst | 0x80); // write burst destination adress
   delayMicroseconds(15);
   
@@ -243,16 +243,16 @@ void adns_upload_firmware(){
   }
 
   //Read the SROM_ID register to verify the ID before any other register reads or writes.
-  adns_read_reg(SROM_ID);
+  adns1_read_reg(SROM_ID);
 
   //Write 0x00 to Config2 register for wired mouse or 0x20 for wireless mouse design.
-  adns_write_reg(Config2, 0x00);
+  adns1_write_reg(Config2, 0x00);
 
   // set initial CPI resolution
-  adns_write_reg(Config1, 0x78); // Max resolution at 12000 cpi
+  adns1_write_reg(Config1, 0x78); // Max resolution at 12000 cpi
   delay(10);
   
-  adns_com_end();										  
+  adns1_com_end();										  
   }
   
   void adns2_upload_firmware(){
@@ -298,20 +298,20 @@ void adns_upload_firmware(){
   }
 
 
-void performStartup(void){
-  adns_com_end(); // ensure that the serial port is reset
-  adns_com_begin(); // ensure that the serial port is reset
-  adns_com_end(); // ensure that the serial port is reset
-  adns_write_reg(Power_Up_Reset, 0x5a); // force reset
+void performStartup1(void){
+  adns1_com_end(); // ensure that the serial port is reset
+  adns1_com_begin(); // ensure that the serial port is reset
+  adns1_com_end(); // ensure that the serial port is reset
+  adns1_write_reg(Power_Up_Reset, 0x5a); // force reset
   delay(50); // wait for it to reboot
   // read registers 0x02 to 0x06 (and discard the data)
-  adns_read_reg(Motion);
-  adns_read_reg(Delta_X_L);
-  adns_read_reg(Delta_X_H);
-  adns_read_reg(Delta_Y_L);
-  adns_read_reg(Delta_Y_H);
+  adns1_read_reg(Motion);
+  adns1_read_reg(Delta_X_L);
+  adns1_read_reg(Delta_X_H);
+  adns1_read_reg(Delta_Y_L);
+  adns1_read_reg(Delta_Y_H);
   // upload the firmware
-  adns_upload_firmware();
+  adns1_upload_firmware();
   delay(10);
   Serial.println("Optical Chip 1 Initialized");
   }
@@ -334,20 +334,20 @@ void performStartup(void){
   Serial.println("Optical Chip 2 Initialized");
   }
 
-void UpdatePointer(void){
+void UpdatePointer1(void){
   if(initComplete==9){
 
-    digitalWrite(ncs,LOW);
+    digitalWrite(ncs1,LOW);
 
     //write 0x01 to Motion register and read from it to freeze the motion values and make them available
-    adns_write_reg(Motion, 0x01);
-    //adns_read_reg(Motion);
-	Mot = (adns_read_reg(Motion) & (1 << (8-1))) != 0;
+    adns1_write_reg(Motion, 0x01);
+    //adns1_read_reg(Motion);
+	  Mot1 = (adns1_read_reg(Motion) & (1 << (8-1))) != 0;
 
-    xydat[0] = (int)adns_read_reg(Delta_X_L);
-    xydat[1] = (int)adns_read_reg(Delta_Y_L);
+    xy1dat[0] = (int)adns1_read_reg(Delta_X_L);
+    xy1dat[1] = (int)adns1_read_reg(Delta_Y_L);
     
-    digitalWrite(ncs,HIGH);
+    digitalWrite(ncs1,HIGH);
     }
   }
   
@@ -359,7 +359,7 @@ void UpdatePointer(void){
     //write 0x01 to Motion register and read from it to freeze the motion values and make them available
     adns2_write_reg(Motion, 0x01);
     //adns2_read_reg(Motion);
-	Mot2 = (adns2_read_reg(Motion) & (1 << (8-1))) != 0;
+	  Mot2 = (adns2_read_reg(Motion) & (1 << (8-1))) != 0;
 
     xy2dat[0] = (int)adns2_read_reg(Delta_X_L);
     xy2dat[1] = (int)adns2_read_reg(Delta_Y_L);
@@ -368,14 +368,14 @@ void UpdatePointer(void){
     }
   }
 
-void dispRegisters(void){
+void dispRegisters1(void){
   int oreg[7] = {
     0x00,0x3F,0x2A,0x0F  };
   const char* oregname[] = {
     "Product_ID","Inverse_Product_ID","SROM_Version","CPI"  };
   byte regres;
 
-  digitalWrite(ncs,LOW);
+  digitalWrite(ncs1,LOW);
 
   int rctr=0;
   for(rctr=0; rctr<4; rctr++){
@@ -389,7 +389,7 @@ void dispRegisters(void){
     Serial.println(regres,HEX);  
     delay(1);
   }
-  digitalWrite(ncs,HIGH);
+  digitalWrite(ncs1,HIGH);
 }
 
 void dispRegisters2(void){
@@ -428,40 +428,48 @@ int convTwosComp(int b){
 
 void loop() {
 
-	UpdatePointer();
+	UpdatePointer1();
 	UpdatePointer2();
-	xydat[0] = convTwosComp(xydat[0]);
-	xydat[1] = convTwosComp(xydat[1]);
+
+	xy1dat[0] = convTwosComp(xy1dat[0]);
+	xy1dat[1] = convTwosComp(xy1dat[1]);
 	xy2dat[0] = convTwosComp(xy2dat[0]);
 	xy2dat[1] = convTwosComp(xy2dat[1]);
-	dP = px1*xydat[0] + py1*xydat[1] + px2*xy2dat[0] + py2*xy2dat[1];
-  dR = rx1*xydat[0] + ry1*xydat[1] + rx2*xy2dat[0] + ry2*xy2dat[1];
-  dY = yx1*xydat[0] + yy1*xydat[1] + yx2*xy2dat[0] + yy2*xy2dat[1];
+
+	dP = px1*xy1dat[0] + py1*xy1dat[1] + px2*xy2dat[0] + py2*xy2dat[1];
+  dR = rx1*xy1dat[0] + ry1*xy1dat[1] + rx2*xy2dat[0] + ry2*xy2dat[1];
+  dY = yx1*xy1dat[0] + yy1*xy1dat[1] + yx2*xy2dat[0] + yy2*xy2dat[1];
+
   analogWrite(pVelPin,dP+2048);
   analogWrite(rVelPin,dR+2048);
   analogWrite(yVelPin,dY+2048);
+
   pCum = pCum*0.9 + dP;
   rCum = rCum*0.9 + dR;
   yCum = yCum*0.9 + dY;					  
 
-	x1Cum = x1Cum + xydat[0];
-	y1Cum = y1Cum + xydat[1];
+	x1Cum = x1Cum + xy1dat[0];
+	y1Cum = y1Cum + xy1dat[1];
 	
 	x2Cum = x2Cum + xy2dat[0];
 	y2Cum = y2Cum + xy2dat[1];
 	  
-	Serial.println("Prod ID = " + String(adns_read_reg(Product_ID)));
+	Serial.println("Prod ID = " + String(adns1_read_reg(Product_ID)));
 	Serial.println("Prod2 ID = " + String(adns2_read_reg(Product_ID)));
-	Serial.println("Mot = " + String(Mot));
+	Serial.println("Mot1 = " + String(Mot1));
 	Serial.println("Mot2 = " + String(Mot2));
+  // Serial.println("x1 = " + String(xy1dat[0]));
+	// Serial.println("y1 = " + String(xy1dat[1]));
+	// Serial.println("x2 = " + String(xy2dat[0]));
+	// Serial.println("y2 = " + String(xy2dat[1]));
 	Serial.println("x1Cum = " + String(x1Cum));
 	Serial.println("y1Cum = " + String(y1Cum));
 	Serial.println("x2Cum = " + String(x2Cum));
 	Serial.println("y2Cum = " + String(y2Cum));
-	Serial.println("Squal = " + String(adns_read_reg(SQUAL)));
+	Serial.println("Squal1 = " + String(adns1_read_reg(SQUAL)));
 	Serial.println("Squal2 = " + String(adns2_read_reg(SQUAL)));
 	  
-	delay(10);
+	delay(100);
     
   }
 
