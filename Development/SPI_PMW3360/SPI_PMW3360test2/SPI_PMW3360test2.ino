@@ -8,11 +8,13 @@
 
 byte initComplete=0;
 byte Mot = 0;
+byte Mot2 = 0;
 byte xH;
 byte xL;
 byte yH;
 byte yL;
 int xydat[2];
+int xy2dat[2];
 int xCum = 0;
 int yCum = 0;
 
@@ -332,6 +334,23 @@ void UpdatePointer(void){
     }
   }
 
+  void UpdatePointer2(void){
+  if(initComplete==9){
+
+    digitalWrite(ncs2,LOW);
+
+    //write 0x01 to Motion register and read from it to freeze the motion values and make them available
+    adns2_write_reg(Motion, 0x01);
+    //adns2_read_reg(Motion);
+	  Mot2 = (adns2_read_reg(Motion) & (1 << (8-1))) != 0;
+
+    xy2dat[0] = (int)adns2_read_reg(Delta_X_L);
+    xy2dat[1] = (int)adns2_read_reg(Delta_Y_L);
+    
+    digitalWrite(ncs2,HIGH);
+    }
+  }
+
 void dispRegisters(void){
   int oreg[7] = {
     0x00,0x3F,0x2A,0x0F  };
@@ -387,31 +406,6 @@ int convTwosComp(int b){
     }
   return b;
   }
-  
-void readXY(int *xy){
-  digitalWrite(ncs,LOW);
-  
-  Mot = (adns_read_reg(Motion) & (1 << (8-1))) != 0;
-  xL = adns_read_reg(Delta_X_L);
-  xH = adns_read_reg(Delta_X_H);
-  yL = adns_read_reg(Delta_Y_L);
-  yH = adns_read_reg(Delta_Y_H);
-  xy[0] = (xH << 8) + xL;
-  xy[1] = (yH << 8) + yL;
-
-  if(xy[0] & 0x8000){
-    xy[0] = -1 * ((xy[0] ^ 0xffff) + 1);
-  }
-  if (xy[1] & 0x8000){
-    xy[1] = -1 * ((xy[1] ^ 0xffff) + 1);
-  }
-  
-  Serial.println("Converted x: " + String(xy[0]));
-  Serial.println("Converted y: " + String(xy[1]));
-
-  digitalWrite(ncs,HIGH);     
-  }
-
 
 void loop() {
 
@@ -419,6 +413,7 @@ void loop() {
 
   // int xydat[2];
   UpdatePointer();
+  UpdatePointer2();
   xydat[0] = convTwosComp(xydat[0]);
   xydat[1] = convTwosComp(xydat[1]);
 
