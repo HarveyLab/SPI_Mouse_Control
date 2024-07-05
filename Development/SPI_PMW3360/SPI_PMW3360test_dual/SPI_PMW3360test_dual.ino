@@ -186,7 +186,8 @@ byte adns2_read_reg(byte reg_addr){
   delayMicroseconds(19); //  tSRW/tSRR (=20us) minus tSCLK-ncs1
 
   return data;
-}																	
+}
+
 void adns1_write_reg(byte reg_addr, byte data){
   adns1_com_begin();
   
@@ -249,7 +250,7 @@ void adns1_upload_firmware(){
   adns1_write_reg(Config2, 0x00);
 
   // set initial CPI resolution
-  adns1_write_reg(Config1, 0x78); // Max resolution at 12000 cpi
+  adns1_write_reg(Config1, 0x77); // Max resolution at 12000 cpi
   delay(10);
   
   adns1_com_end();										  
@@ -291,7 +292,7 @@ void adns1_upload_firmware(){
   adns2_write_reg(Config2, 0x00);
 
   // set initial CPI resolution
-  adns2_write_reg(Config1, 0x78); // Max resolution at 12000 cpi
+  adns2_write_reg(Config1, 0x77); // Max resolution at 12000 cpi
   delay(1500); 								
   
   adns2_com_end();				  
@@ -341,8 +342,7 @@ void UpdatePointer1(void){
 
     //write 0x01 to Motion register and read from it to freeze the motion values and make them available
     adns1_write_reg(Motion, 0x01);
-    //adns1_read_reg(Motion);
-	  Mot1 = (adns1_read_reg(Motion) & (1 << (8-1))) != 0;
+    adns1_read_reg(Motion);
 
     xy1dat[0] = (int)adns1_read_reg(Delta_X_L);
     xy1dat[1] = (int)adns1_read_reg(Delta_Y_L);
@@ -358,8 +358,7 @@ void UpdatePointer1(void){
 
     //write 0x01 to Motion register and read from it to freeze the motion values and make them available
     adns2_write_reg(Motion, 0x01);
-    //adns2_read_reg(Motion);
-	  Mot2 = (adns2_read_reg(Motion) & (1 << (8-1))) != 0;
+    adns2_read_reg(Motion);
 
     xy2dat[0] = (int)adns2_read_reg(Delta_X_L);
     xy2dat[1] = (int)adns2_read_reg(Delta_Y_L);
@@ -428,8 +427,11 @@ int convTwosComp(int b){
 
 void loop() {
 
-	UpdatePointer1();
-	UpdatePointer2();
+  Mot1 = (adns1_read_reg(Motion) & (1 << (8-1))) != 0;
+  UpdatePointer1();
+  delay(10);
+  Mot2 = (adns2_read_reg(Motion) & (1 << (8-1))) != 0;
+  UpdatePointer2();
 
 	xy1dat[0] = convTwosComp(xy1dat[0]);
 	xy1dat[1] = convTwosComp(xy1dat[1]);
@@ -458,10 +460,10 @@ void loop() {
 	Serial.println("Prod2 ID = " + String(adns2_read_reg(Product_ID)));
 	Serial.println("Mot1 = " + String(Mot1));
 	Serial.println("Mot2 = " + String(Mot2));
-  // Serial.println("x1 = " + String(xy1dat[0]));
-	// Serial.println("y1 = " + String(xy1dat[1]));
-	// Serial.println("x2 = " + String(xy2dat[0]));
-	// Serial.println("y2 = " + String(xy2dat[1]));
+  Serial.println("x1 = " + String(xy1dat[0]));
+	Serial.println("y1 = " + String(xy1dat[1]));
+	Serial.println("x2 = " + String(xy2dat[0]));
+	Serial.println("y2 = " + String(xy2dat[1]));
 	Serial.println("x1Cum = " + String(x1Cum));
 	Serial.println("y1Cum = " + String(y1Cum));
 	Serial.println("x2Cum = " + String(x2Cum));
@@ -469,7 +471,7 @@ void loop() {
 	Serial.println("Squal1 = " + String(adns1_read_reg(SQUAL)));
 	Serial.println("Squal2 = " + String(adns2_read_reg(SQUAL)));
 	  
-	delay(100);
+	delay(10);
     
   }
 
