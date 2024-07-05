@@ -17,8 +17,10 @@ int xydat[2];
 int xy2dat[2];
 int xCum = 0;
 int yCum = 0;
+int x2Cum = 0;
+int y2Cum = 0;
 
-const int ncs1 = 0;  //This is the SPI "slave select" pin that the sensor is hooked up to
+const int ncs = 0;  //This is the SPI "slave select" pin that the sensor is hooked up to
 const int ncs2 = 1;
 const int pVelPin = 3;
 const int rVelPin = 4;
@@ -78,8 +80,6 @@ const int yVelPin = 5;
 //Set this to what pin your "INT0" hardware interrupt feature is on
 #define Motion_Interrupt_Pin 18
 
-const int ncs = 0;  //This is the SPI "slave select" pin that the sensor is hooked up to
-
 volatile byte movementflag=0;
 byte testctr=0;
 unsigned long currTime;
@@ -109,13 +109,13 @@ void setup() {
   //SPI.setClockDivider(4);
 
   delay(1000);
-  performStartup();
+  //performStartup();
   delay(10);
   performStartup2();
   delay(10);
   
   delay(1500);
-  dispRegisters();
+  // dispRegisters();
   delay(1500);
   dispRegisters2();
   delay(1500);
@@ -412,22 +412,34 @@ void loop() {
   Mot = (adns_read_reg(Motion) & (1 << (8-1))) != 0;
 
   // int xydat[2];
-  UpdatePointer();
+  // UpdatePointer();
   UpdatePointer2();
   xydat[0] = convTwosComp(xydat[0]);
   xydat[1] = convTwosComp(xydat[1]);
+  xy2dat[0] = convTwosComp(xy2dat[0]);
+	xy2dat[1] = convTwosComp(xy2dat[1]);
 
   // readXY(&xydat[0]);
   xCum = xCum + xydat[0];
   yCum = yCum + xydat[1];
+
+  x2Cum = x2Cum + xy2dat[0];
+	y2Cum = y2Cum + xy2dat[1];
   
   Serial.println("Prod ID = " + String(adns_read_reg(Product_ID)));
-  Serial.println("Motion = " + String(Mot));
+	Serial.println("Prod2 ID = " + String(adns2_read_reg(Product_ID)));
+	Serial.println("Mot1 = " + String(Mot));
+	Serial.println("Mot2 = " + String(Mot2));
   Serial.println("x1 = " + String(xydat[0]));
 	Serial.println("y1 = " + String(xydat[1]));
-  Serial.println("intX = " + String(xCum));
-  Serial.println("intY = " + String(yCum));
-  Serial.println("Squal = " + String(adns_read_reg(SQUAL)));
+	Serial.println("x2 = " + String(xy2dat[0]));
+	Serial.println("y2 = " + String(xy2dat[1]));
+	Serial.println("x1Cum = " + String(xCum));
+	Serial.println("y1Cum = " + String(yCum));
+	Serial.println("x2Cum = " + String(x2Cum));
+	Serial.println("y2Cum = " + String(y2Cum));
+	Serial.println("Squal1 = " + String(adns_read_reg(SQUAL)));
+	Serial.println("Squal2 = " + String(adns2_read_reg(SQUAL)));
   
   delay(100);
     
