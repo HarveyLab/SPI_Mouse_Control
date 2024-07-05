@@ -12,8 +12,14 @@ byte xH;
 byte xL;
 byte yH;
 byte yL;
+int xydat[2];
 int xCum = 0;
 int yCum = 0;
+
+const int ncs = 0;  //This is the SPI "slave select" pin that the sensor is hooked up to
+const int pVelPin = 3;
+const int rVelPin = 4;
+const int yVelPin = 5;
 
 // Registers
 #define Product_ID  0x00
@@ -69,9 +75,6 @@ int yCum = 0;
 //Set this to what pin your "INT0" hardware interrupt feature is on
 #define Motion_Interrupt_Pin 18
 
-const int ncs = 0;  //This is the SPI "slave select" pin that the sensor is hooked up to
-
-int xydat[2];
 volatile byte movementflag=0;
 byte testctr=0;
 unsigned long currTime;
@@ -84,6 +87,10 @@ extern const unsigned char firmware_data[];
 
 void setup() {
   Serial.begin(38400);
+  analogWriteFrequency(pVelPin,11500);
+  analogWriteFrequency(rVelPin,11500);
+  analogWriteFrequency(yVelPin,11500);
+  analogWriteResolution(12);
   
   pinMode (ncs, OUTPUT);
   
@@ -295,11 +302,13 @@ void loop() {
   
   Serial.println("Prod ID = " + String(adns_read_reg(Product_ID)));
   Serial.println("Motion = " + String(Mot));
+  Serial.println("x1 = " + String(xydat[0]));
+  Serial.println("y1 = " + String(xydat[1]));
   Serial.println("intX = " + String(xCum));
   Serial.println("intY = " + String(yCum));
   Serial.println("Squal = " + String(adns_read_reg(SQUAL)));
   
-  delay(10);
+  delay(100);
     
   }
 
