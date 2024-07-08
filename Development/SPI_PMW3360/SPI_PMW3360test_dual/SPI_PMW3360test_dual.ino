@@ -18,6 +18,7 @@ int xy2dat[2];
 double dP;
 double dR;
 double dY;
+double vel_gain = 10.0; // gain from ball rotation to analog out
 int pCum = 0;
 int rCum = 0;
 int yCum = 0;
@@ -442,6 +443,10 @@ void loop() {
   dR = rx1*xy1dat[0] + ry1*xy1dat[1] + rx2*xy2dat[0] + ry2*xy2dat[1];
   dY = yx1*xy1dat[0] + yy1*xy1dat[1] + yx2*xy2dat[0] + yy2*xy2dat[1];
 
+  dP *= vel_gain;
+  dR *= vel_gain;
+  dY *= vel_gain;
+
   analogWrite(pVelPin,dP+2048);
   analogWrite(rVelPin,dR+2048);
   analogWrite(yVelPin,dY+2048);
@@ -460,14 +465,17 @@ void loop() {
 	Serial.println("Prod2 ID = " + String(adns2_read_reg(Product_ID)));
 	Serial.println("Mot1 = " + String(Mot1));
 	Serial.println("Mot2 = " + String(Mot2));
-  Serial.println("x1 = " + String(xy1dat[0]));
-	Serial.println("y1 = " + String(xy1dat[1]));
-	Serial.println("x2 = " + String(xy2dat[0]));
-	Serial.println("y2 = " + String(xy2dat[1]));
-	Serial.println("x1Cum = " + String(x1Cum));
-	Serial.println("y1Cum = " + String(y1Cum));
-	Serial.println("x2Cum = " + String(x2Cum));
-	Serial.println("y2Cum = " + String(y2Cum));
+  Serial.println("dP = " + String(dP));
+	Serial.println("dR = " + String(dR));
+  Serial.println("dR = " + String(dY));
+  // Serial.println("x1 = " + String(xy1dat[0]));
+	// Serial.println("y1 = " + String(xy1dat[1]));
+	// Serial.println("x2 = " + String(xy2dat[0]));
+	// Serial.println("y2 = " + String(xy2dat[1]));
+	// Serial.println("x1Cum = " + String(x1Cum));
+	// Serial.println("y1Cum = " + String(y1Cum));
+	// Serial.println("x2Cum = " + String(x2Cum));
+	// Serial.println("y2Cum = " + String(y2Cum));
 	Serial.println("Squal1 = " + String(adns1_read_reg(SQUAL)));
 	Serial.println("Squal2 = " + String(adns2_read_reg(SQUAL)));
 	  
