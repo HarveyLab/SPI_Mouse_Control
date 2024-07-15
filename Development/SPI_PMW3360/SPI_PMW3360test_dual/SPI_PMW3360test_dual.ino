@@ -15,6 +15,7 @@ byte yH;
 byte yL;
 int xy1dat[2];
 int xy2dat[2];
+int counter = 0;
 double dP;
 double dR;
 double dY;
@@ -28,6 +29,10 @@ int x1Cum = 0;
 int y1Cum = 0;
 int x2Cum = 0;
 int y2Cum = 0;
+
+unsigned long currentTime;
+unsigned long elapsedTime;
+unsigned long lastTime;
 
 const int ncs1 = 0;  //This is the SPI "slave select" pin that the sensor is hooked up to
 const int ncs2 = 1;
@@ -428,9 +433,13 @@ int convTwosComp(int b){
 
 void loop() {
 
+  currentTime = micros(); // Get the current time in microseconds
+  elapsedTime = currentTime - lastTime; // Calculate the elapsed time
+  lastTime = currentTime; // Update lastTime for the next iteration
+
   Mot1 = (adns1_read_reg(Motion) & (1 << (8-1))) != 0;
   UpdatePointer1();
-  delay(10);
+  // delay(10);
   Mot2 = (adns2_read_reg(Motion) & (1 << (8-1))) != 0;
   UpdatePointer2();
 
@@ -460,11 +469,16 @@ void loop() {
 	
 	x2Cum = x2Cum + xy2dat[0];
 	y2Cum = y2Cum + xy2dat[1];
-	  
-	Serial.println("Prod ID = " + String(adns1_read_reg(Product_ID)));
-	Serial.println("Prod2 ID = " + String(adns2_read_reg(Product_ID)));
-	Serial.println("Mot1 = " + String(Mot1));
-	Serial.println("Mot2 = " + String(Mot2));
+  
+  // Increment the counter
+  counter++;
+
+	Serial.println("Counter = " + String(counter));
+  Serial.println("dt = " + String(elapsedTime));
+	// Serial.println("Prod1 ID = " + String(adns1_read_reg(Product_ID)));
+	// Serial.println("Prod2 ID = " + String(adns2_read_reg(Product_ID)));
+	// Serial.println("Mot1 = " + String(Mot1));
+	// Serial.println("Mot2 = " + String(Mot2));
   Serial.println("dP = " + String(dP));
 	Serial.println("dR = " + String(dR));
   Serial.println("dR = " + String(dY));
