@@ -130,43 +130,14 @@ void setup() {
   SPI.begin();
   SPI.setDataMode(SPI_MODE3);
   SPI.setBitOrder(MSBFIRST);
-  SPI.setClockDivider(2);
-
-  delay(1000);
-  performStartup1();
-  delay(10);
-  performStartup2();
-  delay(10);
-  // set initial CPI resolution
-  adns1_write_reg(REG_Configuration_I, 0x77);
-  delay(10);
-  // set initial CPI resolution
-  adns2_write_reg(REG_Configuration_I, 0x77);
-  delay(1500);
-  dispRegisters1();
-  delay(1500);
-  dispRegisters2();
-  delay(1500);
-  initComplete = 9;
-
-  // Setup from the first code
-  analogWriteFrequency(pVelPin, 11500);
-  analogWriteFrequency(rVelPin, 11500);
-  analogWriteFrequency(yVelPin, 11500);
-  analogWriteResolution(12);
-  pinMode(ncs1, OUTPUT);
-  pinMode(ncs2, OUTPUT);
-
-  SPI.begin();
-  SPI.setDataMode(SPI_MODE3);
-  SPI.setBitOrder(MSBFIRST);
   SPI.setClockDivider(SPI_CLOCK_DIV128);
 
+  // Resulution is set in performStartup1 > adns1_upload_firmware
   delay(1000);
   performStartup1();
+
   delay(10);
   performStartup2();
-  delay(10);
 
   delay(1500);
   dispRegisters1();
@@ -233,75 +204,125 @@ void adns2_write_reg(byte reg_addr, byte data) {
   delayMicroseconds(100);
 }
 
-void adns1_upload_firmware() {
-  adns1_write_reg(REG_Configuration_IV, 0x02);
-  adns1_write_reg(REG_SROM_Enable, 0x1d);
-  delay(10);
-  adns1_write_reg(REG_SROM_Enable, 0x18);
+void adns1_upload_firmware(){
+  // send the firmware to the chip, cf p.18 of the datasheet
+  Serial.println("Uploading firmware to chip 1...");
+
+  //Write 0 to Rest_En bit of REG_Configuration_II register to disable Rest mode.
+  adns1_write_reg(REG_Configuration_II, 0x20);
+  
+  // write 0x1d in REG_SROM_Enable reg for initializing
+  adns1_write_reg(REG_SROM_Enable, 0x1d); 
+  
+  // wait for more than one frame period
+  delay(10); // assume that the frame rate is as low as 100fps... even if it should never be that low
+  
+  // write 0x18 to REG_SROM_Enable to start SROM download
+  adns1_write_reg(REG_SROM_Enable, 0x18); 
+  
+  // write the SROM file (=firmware data) 
   adns1_com_begin();
-  SPI.transfer(REG_SROM_Load_Burst | 0x80);
+  SPI.transfer(REG_SROM_Load_Burst | 0x80); // write burst destination adress
   delayMicroseconds(15);
+  
+  // send all bytes of the firmware
   unsigned char c;
-  for (int i = 0; i < firmware_length; i++) {
+  for(int i = 0; i < firmware_length; i++){ 
     c = (unsigned char)pgm_read_byte(firmware_data + i);
     SPI.transfer(c);
     delayMicroseconds(15);
   }
-  adns1_com_end();
-}
 
-void adns2_upload_firmware() {
-  adns2_write_reg(REG_Configuration_IV, 0x02);
-  adns2_write_reg(REG_SROM_Enable, 0x1d);
+  //Read the REG_SROM_ID register to verify the ID before any other register reads or writes.
+  adns1_read_reg(REG_SROM_ID);
+
+  //Write 0x00 to REG_Configuration_II register for wired mouse or 0x20 for wireless mouse design.
+  adns1_write_reg(REG_Configuration_II, 0x00);
+
+  // set initial CPI resolution
+  adns1_write_reg(REG_Configuration_I, 0x77); // Max resolution at 12000 cpi
   delay(10);
-  adns2_write_reg(REG_SROM_Enable, 0x18);
+  
+  adns1_com_end();										  
+  }
+  
+  void adns2_upload_firmware(){
+  // send the firmware to the chip, cf p.18 of the datasheet
+  Serial.println("Uploading firmware to chip 2...");
+
+  //Write 0 to Rest_En bit of REG_Configuration_II register to disable Rest mode.
+  adns2_write_reg(REG_Configuration_II, 0x20);
+  
+  // write 0x1d in REG_SROM_Enable reg for initializing
+  adns2_write_reg(REG_SROM_Enable, 0x1d); 
+  
+  // wait for more than one frame period
+  delay(10); // assume that the frame rate is as low as 100fps... even if it should never be that low
+  
+  // write 0x18 to REG_SROM_Enable to start SROM download
+  adns2_write_reg(REG_SROM_Enable, 0x18); 
+  
+  // write the SROM file (=firmware data) 
   adns2_com_begin();
-  SPI.transfer(REG_SROM_Load_Burst | 0x80);
+  SPI.transfer(REG_SROM_Load_Burst | 0x80); // write burst destination adress
   delayMicroseconds(15);
+  
+  // send all bytes of the firmware
   unsigned char c;
-  for (int i = 0; i < firmware_length; i++) {
+  for(int i = 0; i < firmware_length; i++){ 
     c = (unsigned char)pgm_read_byte(firmware_data + i);
     SPI.transfer(c);
     delayMicroseconds(15);
   }
-  adns2_com_end();
-}
 
-void performStartup1() {
-  adns1_com_end();
-  adns1_com_begin();
-  adns1_com_end();
-  adns1_write_reg(REG_Power_Up_Reset, 0x5a);
-  delay(50);
-  adns1_read_reg(REG_Motion);
+  //Read the REG_SROM_ID register to verify the ID before any other register reads or writes.
+  adns2_read_reg(REG_SROM_ID);
+
+  //Write 0x00 to REG_Configuration_II register for wired mouse or 0x20 for wireless mouse design.
+  adns2_write_reg(REG_Configuration_II, 0x00);
+
+  // set initial CPI resolution
+  adns2_write_reg(REG_Configuration_I, 0x77); // Max resolution at 12000 cpi
+  delay(1500); 								
+  
+  adns2_com_end();				  
+  }
+
+void performStartup1(void){
+  adns1_com_end(); // ensure that the serial port is reset
+  adns1_com_begin(); // ensure that the serial port is reset
+  adns1_com_end(); // ensure that the serial port is reset
+  adns1_write_reg(REG_Power_Up_Reset, 0x5a); // force reset
+  delay(50); // wait for it to reboot
+  // read registers 0x02 to 0x06 (and discard the data)
+  adns1_read_reg(Motion);
   adns1_read_reg(REG_Delta_X_L);
   adns1_read_reg(REG_Delta_X_H);
   adns1_read_reg(REG_Delta_Y_L);
   adns1_read_reg(REG_Delta_Y_H);
+  // upload the firmware
   adns1_upload_firmware();
   delay(10);
-  byte laser_ctrl0 = adns1_read_reg(REG_LASER_CTRL0);
-  adns1_write_reg(REG_LASER_CTRL0, laser_ctrl0 & 0xf0);
-  delay(10);
-}
-
-void performStartup2() {
-  adns2_com_end();
-  adns2_com_begin();
-  adns2_com_end();
-  adns2_write_reg(REG_Power_Up_Reset, 0x5a);
-  delay(50);
-  adns2_read_reg(REG_Motion);
+  Serial.println("Optical Chip 1 Initialized");
+  }
+  
+  void performStartup2(void){
+  adns2_com_end(); // ensure that the serial port is reset
+  adns2_com_begin(); // ensure that the serial port is reset
+  adns2_com_end(); // ensure that the serial port is reset
+  adns2_write_reg(REG_Power_Up_Reset, 0x5a); // force reset
+  delay(50); // wait for it to reboot
+  // read registers 0x02 to 0x06 (and discard the data)
+  adns2_read_reg(Motion);
   adns2_read_reg(REG_Delta_X_L);
   adns2_read_reg(REG_Delta_X_H);
   adns2_read_reg(REG_Delta_Y_L);
   adns2_read_reg(REG_Delta_Y_H);
+  // upload the firmware
   adns2_upload_firmware();
   delay(10);
-  byte laser_ctrl0_2 = adns2_read_reg(REG_LASER_CTRL0);
-  adns2_write_reg(REG_LASER_CTRL0, laser_ctrl0_2 & 0xf0);
-  delay(10);
-}
+  Serial.println("Optical Chip 2 Initialized");
+  }
 
 void dispRegisters1() {
   int oreg[7] = {
@@ -429,6 +450,7 @@ int convTwosComp(int b) {
 }
 
 void loop() {
+
   dt = micros() - absTime;
   absTime = micros();
 
@@ -451,6 +473,7 @@ void loop() {
   // Update licks - for some reason abs() was causing error 
   unsigned long read1 = digitalRead(lick1Pin);
   unsigned long read2 = digitalRead(lick2Pin);
+
   if (lastLick1 != read1) {
     lickCount1++;
   }
@@ -470,6 +493,7 @@ void loop() {
       valve1Dur = 0;
     }
   }
+
   // Update valve 2
   if (valve2State == 1) {
     // Check to see if enough time has elapsed
