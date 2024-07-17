@@ -1,19 +1,22 @@
 #include <SPI.h>
 #include <avr/pgmspace.h>
 
-byte initComplete=0;
+// const unsigned short firmware_length = 4094;
+
+// Variables from the second code
+byte initComplete = 0;
 byte Motion = 0;
 byte xH;
 byte xL;
 byte yH;
 byte yL;
-int xydat[2];
+int xy1dat[2];
 int xy2dat[2];
 double dP;
 double dR;
 double dY;
 
-const int ncs = 0;
+const int ncs1 = 0;
 const int ncs2 = 1;
 const int pVelPin = 3;
 const int rVelPin = 4;
@@ -36,263 +39,227 @@ const double py2 = -0.2414;
 const double ry2 = 0.2414;
 const double yy2 = -0.7779;
 
-// variables for keeping track of valve start
+// Variables for keeping track of valve start
 unsigned long valve1Start = 0;
 unsigned long valve2Start = 0;
 
 unsigned int valve1State = 0;
 unsigned int valve2State = 0;
 
-unsigned long valve1Dur = 0; // duration of valve 1 open in millis
-unsigned long valve2Dur = 0; // duration of valve 2 open in millis
+unsigned long valve1Dur = 0; // Duration of valve 1 open in millis
+unsigned long valve2Dur = 0; // Duration of valve 2 open in millis
 
-long lickCount1 = 0;
-long lickCount2 = 0;
+unsigned long lickCount1 = 0;
+unsigned long lickCount2 = 0;
 
-unsigned int lastLick1 = 0;
-unsigned int lastLick2 = 0;
+unsigned long lastLick1 = 0;
+unsigned long lastLick2 = 0;
 
 unsigned long lastMsgTime = 0;
 unsigned long absTime = micros();
 unsigned long dt = micros();
 
+// Registers from the second code
+#define REG_Product_ID 0x00
+#define REG_Revision_ID 0x01
+#define REG_Motion 0x02
+#define REG_Delta_X_L 0x03
+#define REG_Delta_X_H 0x04
+#define REG_Delta_Y_L 0x05
+#define REG_Delta_Y_H 0x06
+#define REG_SQUAL 0x07
+#define REG_Pixel_Sum 0x08
+#define REG_Maximum_Pixel 0x09
+#define REG_Minimum_Pixel 0x0a
+#define REG_Shutter_Lower 0x0b
+#define REG_Shutter_Upper 0x0c
+#define REG_Frame_Period_Lower 0x0d
+#define REG_Frame_Period_Upper 0x0e
+#define REG_Configuration_I 0x0f
+#define REG_Configuration_II 0x10
+#define REG_Frame_Capture 0x12
+#define REG_SROM_Enable 0x13
+#define REG_Run_Downshift 0x14
+#define REG_Rest1_Rate 0x15
+#define REG_Rest1_Downshift 0x16
+#define REG_Rest2_Rate 0x17
+#define REG_Rest2_Downshift 0x18
+#define REG_Rest3_Rate 0x19
+#define REG_Frame_Period_Max_Bound_Lower 0x1a
+#define REG_Frame_Period_Max_Bound_Upper 0x1b
+#define REG_Frame_Period_Min_Bound_Lower 0x1c
+#define REG_Frame_Period_Min_Bound_Upper 0x1d
+#define REG_Shutter_Max_Bound_Lower 0x1e
+#define REG_Shutter_Max_Bound_Upper 0x1f
+#define REG_LASER_CTRL0 0x20
+#define REG_Observation 0x24
+#define REG_Data_Out_Lower 0x25
+#define REG_Data_Out_Upper 0x26
+#define REG_SROM_ID 0x2a
+#define REG_Lift_Detection_Thr 0x2e
+#define REG_Configuration_V 0x2f
+#define REG_Configuration_IV 0x39
+#define REG_Power_Up_Reset 0x3a
+#define REG_Shutdown 0x3b
+#define REG_Inverse_Product_ID 0x3f
+#define REG_Motion_Burst 0x50
+#define REG_SROM_Load_Burst 0x62
+#define REG_Pixel_Burst 0x64
 
-//const double px1 = 1;
-//const double rx1 = 0;
-//const double yx1 = 0;
-//const double py1 = 0;
-//const double ry1 = 0;
-//const double yy1 = -1.557;
-//const double px2 = 0;
-//const double rx2 = -1;
-//const double yx2 = 1.1918;
-//const double py2 = 0;
-//const double ry2 = 0;
-//const double yy2 = 0;
-
-// Registers
-#define REG_Product_ID                           0x00
-#define REG_Revision_ID                          0x01
-#define REG_Motion                               0x02
-#define REG_Delta_X_L                            0x03
-#define REG_Delta_X_H                            0x04
-#define REG_Delta_Y_L                            0x05
-#define REG_Delta_Y_H                            0x06
-#define REG_SQUAL                                0x07
-#define REG_Pixel_Sum                            0x08
-#define REG_Maximum_Pixel                        0x09
-#define REG_Minimum_Pixel                        0x0a
-#define REG_Shutter_Lower                        0x0b
-#define REG_Shutter_Upper                        0x0c
-#define REG_Frame_Period_Lower                   0x0d
-#define REG_Frame_Period_Upper                   0x0e
-#define REG_Configuration_I                      0x0f
-#define REG_Configuration_II                     0x10
-#define REG_Frame_Capture                        0x12
-#define REG_SROM_Enable                          0x13
-#define REG_Run_Downshift                        0x14
-#define REG_Rest1_Rate                           0x15
-#define REG_Rest1_Downshift                      0x16
-#define REG_Rest2_Rate                           0x17
-#define REG_Rest2_Downshift                      0x18
-#define REG_Rest3_Rate                           0x19
-#define REG_Frame_Period_Max_Bound_Lower         0x1a
-#define REG_Frame_Period_Max_Bound_Upper         0x1b
-#define REG_Frame_Period_Min_Bound_Lower         0x1c
-#define REG_Frame_Period_Min_Bound_Upper         0x1d
-#define REG_Shutter_Max_Bound_Lower              0x1e
-#define REG_Shutter_Max_Bound_Upper              0x1f
-#define REG_LASER_CTRL0                          0x20
-#define REG_Observation                          0x24
-#define REG_Data_Out_Lower                       0x25
-#define REG_Data_Out_Upper                       0x26
-#define REG_SROM_ID                              0x2a
-#define REG_Lift_Detection_Thr                   0x2e
-#define REG_Configuration_V                      0x2f
-#define REG_Configuration_IV                     0x39
-#define REG_Power_Up_Reset                       0x3a
-#define REG_Shutdown                             0x3b
-#define REG_Inverse_Product_ID                   0x3f
-#define REG_Motion_Burst                         0x50
-#define REG_SROM_Load_Burst                      0x62
-#define REG_Pixel_Burst                          0x64
-
+//Be sure to add the SROM file into this sketch via "Sketch->Add File"
 extern const unsigned short firmware_length;
-extern prog_uchar firmware_data[];
+extern const unsigned char firmware_data[];
 
 void setup() {
-
-// set up serial and print so that matlab knows it is working
+  // Setup from the second code
   Serial.begin(57600);
   Serial.println('S');
 
-
-  analogWriteFrequency(pVelPin,11500);
-  analogWriteFrequency(rVelPin,11500);
-  analogWriteFrequency(yVelPin,11500);
+  analogWriteFrequency(pVelPin, 11500);
+  analogWriteFrequency(rVelPin, 11500);
+  analogWriteFrequency(yVelPin, 11500);
   analogWriteResolution(12);
-  pinMode(ncs, OUTPUT);
+  pinMode(ncs1, OUTPUT);
   pinMode(ncs2, OUTPUT);
-  
-  pinMode(valve1Pin,OUTPUT);
-  pinMode(valve2Pin,OUTPUT);
-  pinMode(lick1Pin,INPUT);
-  pinMode(lick2Pin,INPUT);
+
+  pinMode(valve1Pin, OUTPUT);
+  pinMode(valve2Pin, OUTPUT);
+  pinMode(lick1Pin, INPUT);
+  pinMode(lick2Pin, INPUT);
 
   SPI.begin();
   SPI.setDataMode(SPI_MODE3);
   SPI.setBitOrder(MSBFIRST);
   SPI.setClockDivider(2);
-  
+
   delay(1000);
-  performStartup();
+  performStartup1();
   delay(10);
   performStartup2();
   delay(10);
-  adns_write_reg(REG_Configuration_I, 0x10);
-  //adns_write_reg(REG_Configuration_I, 0x29); // maximum resolution
-  //adns_write_reg(REG_Configuration_I, 0x09); // default resolution
-  //adns_write_reg(REG_Configuration_I, 0x01); // minimum resolution
+  // set initial CPI resolution
+  adns1_write_reg(REG_Configuration_I, 0x77);
   delay(10);
-  adns2_write_reg(REG_Configuration_I, 0x10);
-  //adns2_write_reg(REG_Configuration_I, 0x09); // default resolution
-  //adns2_write_reg(REG_Configuration_I, 0x01); // minimum resolution
-  delay(1500);  
-  dispRegisters();
+  // set initial CPI resolution
+  adns2_write_reg(REG_Configuration_I, 0x77);
+  delay(1500);
+  dispRegisters1();
   delay(1500);
   dispRegisters2();
   delay(1500);
-  initComplete=9;
+  initComplete = 9;
 
+  // Setup from the first code
+  analogWriteFrequency(pVelPin, 11500);
+  analogWriteFrequency(rVelPin, 11500);
+  analogWriteFrequency(yVelPin, 11500);
+  analogWriteResolution(12);
+  pinMode(ncs1, OUTPUT);
+  pinMode(ncs2, OUTPUT);
+
+  SPI.begin();
+  SPI.setDataMode(SPI_MODE3);
+  SPI.setBitOrder(MSBFIRST);
+  SPI.setClockDivider(SPI_CLOCK_DIV128);
+
+  delay(1000);
+  performStartup1();
+  delay(10);
+  performStartup2();
+  delay(10);
+
+  delay(1500);
+  dispRegisters1();
+  delay(1500);
+  dispRegisters2();
+  delay(1500);
+  initComplete = 9;
 }
 
-void adns_com_begin(){
-  digitalWrite(ncs, LOW);
+// Functions from the second code
+void adns1_com_begin() {
+  digitalWrite(ncs1, LOW);
 }
 
-void adns2_com_begin(){
+void adns2_com_begin() {
   digitalWrite(ncs2, LOW);
 }
 
-void adns_com_end(){
-  digitalWrite(ncs, HIGH);
+void adns1_com_end() {
+  digitalWrite(ncs1, HIGH);
 }
 
-void adns2_com_end(){
+void adns2_com_end() {
   digitalWrite(ncs2, HIGH);
 }
 
-byte adns_read_reg(byte reg_addr){
-  adns_com_begin();
-  
-  // send adress of the register, with MSBit = 0 to indicate it's a read
-  SPI.transfer(reg_addr & 0x7f );
-  delayMicroseconds(100); // tSRAD
-  // read data
+byte adns1_read_reg(byte reg_addr) {
+  adns1_com_begin();
+  SPI.transfer(reg_addr & 0x7f);
+  delayMicroseconds(100);
   byte data = SPI.transfer(0);
-  
-  delayMicroseconds(1); // tSCLK-NCS for read operation is 120ns
-  adns_com_end();
-  delayMicroseconds(19); //  tSRW/tSRR (=20us) minus tSCLK-NCS
-
+  delayMicroseconds(1);
+  adns1_com_end();
+  delayMicroseconds(19);
   return data;
 }
 
-byte adns2_read_reg(byte reg_addr){
+byte adns2_read_reg(byte reg_addr) {
   adns2_com_begin();
-  
-  // send adress of the register, with MSBit = 0 to indicate it's a read
-  SPI.transfer(reg_addr & 0x7f );
-  delayMicroseconds(100); // tSRAD
-  // read data
+  SPI.transfer(reg_addr & 0x7f);
+  delayMicroseconds(100);
   byte data = SPI.transfer(0);
-  
-  delayMicroseconds(1); // tSCLK-NCS for read operation is 120ns
+  delayMicroseconds(1);
   adns2_com_end();
-  delayMicroseconds(19); //  tSRW/tSRR (=20us) minus tSCLK-NCS
-
+  delayMicroseconds(19);
   return data;
 }
 
-void adns_write_reg(byte reg_addr, byte data){
-  adns_com_begin();
-  
-  //send adress of the register, with MSBit = 1 to indicate it's a write
-  SPI.transfer(reg_addr | 0x80 );
-  //sent data
+void adns1_write_reg(byte reg_addr, byte data) {
+  adns1_com_begin();
+  SPI.transfer(reg_addr | 0x80);
   SPI.transfer(data);
-  
-  delayMicroseconds(20); // tSCLK-NCS for write operation
-  adns_com_end();
-  delayMicroseconds(100); // tSWW/tSWR (=120us) minus tSCLK-NCS. Could be shortened, but is looks like a safe lower bound 
+  delayMicroseconds(20);
+  adns1_com_end();
+  delayMicroseconds(100);
 }
 
-void adns2_write_reg(byte reg_addr, byte data){
+void adns2_write_reg(byte reg_addr, byte data) {
   adns2_com_begin();
-  
-  //send adress of the register, with MSBit = 1 to indicate it's a write
-  SPI.transfer(reg_addr | 0x80 );
-  //sent data
+  SPI.transfer(reg_addr | 0x80);
   SPI.transfer(data);
-  
-  delayMicroseconds(20); // tSCLK-NCS for write operation
+  delayMicroseconds(20);
   adns2_com_end();
-  delayMicroseconds(100); // tSWW/tSWR (=120us) minus tSCLK-NCS. Could be shortened, but is looks like a safe lower bound 
+  delayMicroseconds(100);
 }
 
-void adns_upload_firmware(){
-  // send the firmware to the chip, cf p.18 of the datasheet
-//  Serial.println("Uploading firmware to chip 1...");
-  // set the configuration_IV register in 3k firmware mode
-  adns_write_reg(REG_Configuration_IV, 0x02); // bit 1 = 1 for 3k mode, other bits are reserved 
-  
-  // write 0x1d in SROM_enable reg for initializing
-  adns_write_reg(REG_SROM_Enable, 0x1d); 
-  
-  // wait for more than one frame period
-  delay(10); // assume that the frame rate is as low as 100fps... even if it should never be that low
-  
-  // write 0x18 to SROM_enable to start SROM download
-  adns_write_reg(REG_SROM_Enable, 0x18); 
-  
-  // write the SROM file (=firmware data) 
-  adns_com_begin();
-  SPI.transfer(REG_SROM_Load_Burst | 0x80); // write burst destination adress
+void adns1_upload_firmware() {
+  adns1_write_reg(REG_Configuration_IV, 0x02);
+  adns1_write_reg(REG_SROM_Enable, 0x1d);
+  delay(10);
+  adns1_write_reg(REG_SROM_Enable, 0x18);
+  adns1_com_begin();
+  SPI.transfer(REG_SROM_Load_Burst | 0x80);
   delayMicroseconds(15);
-  
-  // send all bytes of the firmware
   unsigned char c;
-  for(int i = 0; i < firmware_length; i++){ 
+  for (int i = 0; i < firmware_length; i++) {
     c = (unsigned char)pgm_read_byte(firmware_data + i);
     SPI.transfer(c);
     delayMicroseconds(15);
   }
-  adns_com_end();
+  adns1_com_end();
 }
 
-void adns2_upload_firmware(){
-  // send the firmware to the chip, cf p.18 of the datasheet
-  //Serial.println("Uploading firmware to chip 2...");
-  // set the configuration_IV register in 3k firmware mode
-  adns2_write_reg(REG_Configuration_IV, 0x02); // bit 1 = 1 for 3k mode, other bits are reserved 
-  
-  // write 0x1d in SROM_enable reg for initializing
-  adns2_write_reg(REG_SROM_Enable, 0x1d); 
-  
-  // wait for more than one frame period
-  delay(10); // assume that the frame rate is as low as 100fps... even if it should never be that low
-  
-  // write 0x18 to SROM_enable to start SROM download
-  adns2_write_reg(REG_SROM_Enable, 0x18); 
-  
-  // write the SROM file (=firmware data) 
+void adns2_upload_firmware() {
+  adns2_write_reg(REG_Configuration_IV, 0x02);
+  adns2_write_reg(REG_SROM_Enable, 0x1d);
+  delay(10);
+  adns2_write_reg(REG_SROM_Enable, 0x18);
   adns2_com_begin();
-  SPI.transfer(REG_SROM_Load_Burst | 0x80); // write burst destination adress
+  SPI.transfer(REG_SROM_Load_Burst | 0x80);
   delayMicroseconds(15);
-  
-  // send all bytes of the firmware
   unsigned char c;
-  for(int i = 0; i < firmware_length; i++){ 
+  for (int i = 0; i < firmware_length; i++) {
     c = (unsigned char)pgm_read_byte(firmware_data + i);
     SPI.transfer(c);
     delayMicroseconds(15);
@@ -300,258 +267,234 @@ void adns2_upload_firmware(){
   adns2_com_end();
 }
 
-
-void performStartup(void){
-  adns_com_end(); // ensure that the serial port is reset - this is really a digital pin
-  adns_com_begin(); // ensure that the serial port is reset - digital pin
-  adns_com_end(); // ensure that the serial port is reset - digital pin
-  adns_write_reg(REG_Power_Up_Reset, 0x5a); // force reset
-  delay(50); // wait for it to reboot
-  // read registers 0x02 to 0x06 (and discard the data)
-  adns_read_reg(REG_Motion);
-  adns_read_reg(REG_Delta_X_L);
-  adns_read_reg(REG_Delta_X_H);
-  adns_read_reg(REG_Delta_Y_L);
-  adns_read_reg(REG_Delta_Y_H);
-  // upload the firmware
-  adns_upload_firmware();
+void performStartup1() {
+  adns1_com_end();
+  adns1_com_begin();
+  adns1_com_end();
+  adns1_write_reg(REG_Power_Up_Reset, 0x5a);
+  delay(50);
+  adns1_read_reg(REG_Motion);
+  adns1_read_reg(REG_Delta_X_L);
+  adns1_read_reg(REG_Delta_X_H);
+  adns1_read_reg(REG_Delta_Y_L);
+  adns1_read_reg(REG_Delta_Y_H);
+  adns1_upload_firmware();
   delay(10);
-  //enable laser(bit 0 = 0b), in normal mode (bits 3,2,1 = 000b)
-  // reading the actual value of the register is important because the real
-  // default value is different from what is said in the datasheet, and if you
-  // change the reserved bytes (like by writing 0x00...) it would not work.
-  byte laser_ctrl0 = adns_read_reg(REG_LASER_CTRL0);
-  adns_write_reg(REG_LASER_CTRL0, laser_ctrl0 & 0xf0 );
-  
+  byte laser_ctrl0 = adns1_read_reg(REG_LASER_CTRL0);
+  adns1_write_reg(REG_LASER_CTRL0, laser_ctrl0 & 0xf0);
   delay(10);
-
-  // Serial.println("Optical Chip 1 Initialized");
 }
 
-void performStartup2(void){
-  adns2_com_end(); // ensure that the serial port is reset
-  adns2_com_begin(); // ensure that the serial port is reset
-  adns2_com_end(); // ensure that the serial port is reset
-  adns2_write_reg(REG_Power_Up_Reset, 0x5a); // force reset
-  delay(50); // wait for it to reboot
-  // read registers 0x02 to 0x06 (and discard the data)
+void performStartup2() {
+  adns2_com_end();
+  adns2_com_begin();
+  adns2_com_end();
+  adns2_write_reg(REG_Power_Up_Reset, 0x5a);
+  delay(50);
   adns2_read_reg(REG_Motion);
   adns2_read_reg(REG_Delta_X_L);
   adns2_read_reg(REG_Delta_X_H);
   adns2_read_reg(REG_Delta_Y_L);
   adns2_read_reg(REG_Delta_Y_H);
-  // upload the firmware
   adns2_upload_firmware();
   delay(10);
-  //enable laser(bit 0 = 0b), in normal mode (bits 3,2,1 = 000b)
-  // reading the actual value of the register is important because the real
-  // default value is different from what is said in the datasheet, and if you
-  // change the reserved bytes (like by writing 0x00...) it would not work.
   byte laser_ctrl0_2 = adns2_read_reg(REG_LASER_CTRL0);
-  adns2_write_reg(REG_LASER_CTRL0, laser_ctrl0_2 & 0xf0 );
-  
+  adns2_write_reg(REG_LASER_CTRL0, laser_ctrl0_2 & 0xf0);
   delay(10);
-
-  //Serial.println("Optical Chip 2 Initialized");
 }
 
-
-void dispRegisters(void){
+void dispRegisters1() {
   int oreg[7] = {
-    0x00,0x3F,0x2A,0x0F  };
-  char* oregname[] = {
-    "Product_ID","Inverse_Product_ID","SROM_Version","CPI"  };
+    0x00, 0x3F, 0x2A, 0x0F
+  };
+  const char* oregname[] = {
+    "Product_ID", "Inverse_Product_ID", "SROM_Version", "CPI"
+  };
   byte regres;
 
-  digitalWrite(ncs,LOW);
+  digitalWrite(ncs1, LOW);
 
   int rctr=0;
   for(rctr=0; rctr<4; rctr++){
     SPI.transfer(oreg[rctr]);
     delay(1);
-    // Serial.println("---");
-    // Serial.println(oregname[rctr]);
-    // Serial.println(oreg[rctr],HEX);
+    Serial.println("---");
+    Serial.println(oregname[rctr]);
+    Serial.println(oreg[rctr],HEX);
     regres = SPI.transfer(0);
-    // // Serial.println(regres,BIN);  
-    // Serial.println(regres,HEX);  
+    Serial.println(regres,BIN);  
+    Serial.println(regres,HEX);  
     delay(1);
   }
-  digitalWrite(ncs,HIGH);
+  digitalWrite(ncs1,HIGH);
 }
 
-void dispRegisters2(void){
+void dispRegisters2() {
   int oreg[7] = {
-    0x00,0x3F,0x2A,0x0F  };
-  char* oregname[] = {
-    "Product_ID2","Inverse_Product_ID2","SROM_Version2","CPI2"  };
+    0x00, 0x3F, 0x2A, 0x0F
+  };
+  const char* oregname[] = {
+    "Product_ID2", "Inverse_Product_ID2", "SROM_Version2", "CPI2"
+  };
   byte regres;
 
-  digitalWrite(ncs2,LOW);
+  digitalWrite(ncs2, LOW);
 
   int rctr=0;
   for(rctr=0; rctr<4; rctr++){
     SPI.transfer(oreg[rctr]);
     delay(1);
-    // Serial.println("---");
-    // Serial.println(oregname[rctr]);
-    // Serial.println(oreg[rctr],HEX);
+    Serial.println("---");
+    Serial.println(oregname[rctr]);
+    Serial.println(oreg[rctr],HEX);
     regres = SPI.transfer(0);
-    // Serial.println(regres,BIN);  
-    // Serial.println(regres,HEX);  
+    Serial.println(regres,BIN);  
+    Serial.println(regres,HEX);  
     delay(1);
   }
   digitalWrite(ncs2,HIGH);
 }
 
-int readXY(int *xy){
-  //digitalWrite(ncs,LOW);
-  
-  Motion = (adns_read_reg(REG_Motion) & (1 << 8-1)) != 0;
-  xL = adns_read_reg(REG_Delta_X_L);
-  xH = adns_read_reg(REG_Delta_X_H);
-  yL = adns_read_reg(REG_Delta_Y_L);
-  yH = adns_read_reg(REG_Delta_Y_H);
-  xy[0] = (xH << 8) + xL;
-  xy[1] = (yH << 8) + yL;
+void UpdatePointer1(void) {
+  if (initComplete == 9) {
+    digitalWrite(ncs1, LOW);
+    adns1_write_reg(REG_Motion, 0x01);
+    adns1_read_reg(REG_Motion);
 
-  if(xy[0] & 0x8000){
-    xy[0] = -1 * ((xy[0] ^ 0xffff) + 1);
+    xy1dat[0] = (int)adns1_read_reg(REG_Delta_X_L);
+    xy1dat[1] = (int)adns1_read_reg(REG_Delta_Y_L);
+
+    digitalWrite(ncs1, HIGH);
   }
-  if (xy[1] & 0x8000){
-    xy[1] = -1 * ((xy[1] ^ 0xffff) + 1);
-  }
-  
-  //digitalWrite(ncs,HIGH);     
 }
 
-int readXY2(int *xy){
-  //digitalWrite(ncs2,LOW);
-  
-  Motion = (adns2_read_reg(REG_Motion) & (1 << 8-1)) != 0;
-  xL = adns2_read_reg(REG_Delta_X_L);
-  xH = adns2_read_reg(REG_Delta_X_H);
-  yL = adns2_read_reg(REG_Delta_Y_L);
-  yH = adns2_read_reg(REG_Delta_Y_H);
-  xy[0] = (xH << 8) + xL;
-  xy[1] = (yH << 8) + yL;
+void UpdatePointer2(void) {
+  if (initComplete == 9) {
+    digitalWrite(ncs2, LOW);
+    adns2_write_reg(REG_Motion, 0x01);
+    adns2_read_reg(REG_Motion);
 
-  if(xy[0] & 0x8000){
-    xy[0] = -1 * ((xy[0] ^ 0xffff) + 1);
+    xy2dat[0] = (int)adns2_read_reg(REG_Delta_X_L);
+    xy2dat[1] = (int)adns2_read_reg(REG_Delta_Y_L);
+
+    digitalWrite(ncs2, HIGH);
   }
-  if (xy[1] & 0x8000){
-    xy[1] = -1 * ((xy[1] ^ 0xffff) + 1);
-  }
-  
-  //digitalWrite(ncs2,HIGH);     
 }
-
 
 void interpretCommand(String message) {
-  message.trim(); // remove leading and training white space
+  message.trim(); // Remove leading and trailing white space
   int len = message.length();
-  // message will always be 6 bytes numeric
-  // the first 3 charachters are valve 1 duration
-  // second 3 char vale 2 duration
-
+  // Message will always be 6 bytes numeric
+  // The first 3 characters are valve 1 duration
+  // Second 3 characters are valve 2 duration
 
   if (len != 6) {
-  Serial.println("#"); // "#" means error
+    Serial.println("#"); // "#" means error
     return;
   }
   String cmd1 = message.substring(0, 3);
   String cmd2 = message.substring(3);
   if (cmd1.toInt() > 0) {
-    // change valve 1 variables
+    // Change valve 1 variables
     valve1Start = millis();
     valve1State = 1;
     valve1Dur = cmd1.toInt();
     digitalWrite(valve1Pin, HIGH);
   }
-  // do the same thing with valve 2
+  // Do the same thing with valve 2
   if (cmd2.toInt() > 0) {
-    // change valve 1 variables
+    // Change valve 2 variables
     valve2Start = millis();
     valve2State = 1;
     valve2Dur = cmd2.toInt();
     digitalWrite(valve2Pin, HIGH);
   }
 
-  // construct data string
-  String dataString = "dp,"+String(dP,3)+",dr,"+String(dR,3)+",dy,"+String(dY,3)+",l1,"+String(lickCount1)+",l2,"+String(lickCount2)+",v1,"+String(valve1State)+",v2,"+String(valve2State)+",dta,"+String(dt)+",dtmsg,"+String(millis()-lastMsgTime);
+  // Construct data string
+  String dataString = "dp," + String(dP, 3) + ",dr," + String(dR, 3) + ",dy," + String(dY, 3) + ",l1," + String(lickCount1) + ",l2," + String(lickCount2) + ",v1," + String(valve1State) + ",v2," + String(valve2State) + ",dta," + String(dt) + ",dtmsg," + String(millis() - lastMsgTime);
 
-// send message
+  // Send message
   Serial.println(dataString);
   lastMsgTime = millis();
   lickCount1 = 0;
   lickCount2 = 0;
-
 }
 
+int convTwosComp(int b) {
+  // Convert from 2's complement
+  if (b & 0x80) {
+    b = -1 * ((b ^ 0xff) + 1);
+  }
+  return b;
+}
 
 void loop() {
-
-  dt = micros()-absTime;
+  dt = micros() - absTime;
   absTime = micros();
 
-  readXY(&xydat[0]);
-  readXY2(&xy2dat[0]);
-  dP = px1*xydat[0] + py1*xydat[1] + px2*xy2dat[0] + py2*xy2dat[1];
-  dR = rx1*xydat[0] + ry1*xydat[1] + rx2*xy2dat[0] + ry2*xy2dat[1];
-  dY = yx1*xydat[0] + yy1*xydat[1] + yx2*xy2dat[0] + yy2*xy2dat[1];
-  analogWrite(pVelPin,dP+2048);
-  analogWrite(rVelPin,dR+2048);
-  analogWrite(yVelPin,dY+2048);
+  UpdatePointer1();
+  UpdatePointer2();
 
-// update licks - for some readson abs() was causing error 
-int read1 = digitalRead(lick1Pin);
-int read2 = digitalRead(lick2Pin);
-if (lastLick1 != read1) {
-  lickCount1 = lickCount1 + 1;
-}
-if (lastLick2 != read2) {
-  lickCount2 = lickCount2 + 1;
-}
-lastLick1 = read1;
-lastLick2 = read2;
+  xy1dat[0] = convTwosComp(xy1dat[0]);
+  xy1dat[1] = convTwosComp(xy1dat[1]);
+  xy2dat[0] = convTwosComp(xy2dat[0]);
+  xy2dat[1] = convTwosComp(xy2dat[1]);
 
-// update valve 1
-if (valve1State == 1) {
-  // check to see if enough time has elapsed
-  int tHigh = millis()-valve1Start; // abs() was causing error here too, switched to if()
-  if ((tHigh>valve1Dur) || (tHigh<0) || (tHigh>10000)) {
-    valve1State = 0;
-    digitalWrite(valve1Pin, LOW);
-    valve1Dur = 0;
+  dP = px1 * xy1dat[0] + py1 * xy1dat[1] + px2 * xy2dat[0] + py2 * xy2dat[1];
+  dR = rx1 * xy1dat[0] + ry1 * xy1dat[1] + rx2 * xy2dat[0] + ry2 * xy2dat[1];
+  dY = yx1 * xy1dat[0] + yy1 * xy1dat[1] + yx2 * xy2dat[0] + yy2 * xy2dat[1];
+
+  analogWrite(pVelPin, dP + 2048);
+  analogWrite(rVelPin, dR + 2048);
+  analogWrite(yVelPin, dY + 2048);
+
+  // Update licks - for some reason abs() was causing error 
+  unsigned long read1 = digitalRead(lick1Pin);
+  unsigned long read2 = digitalRead(lick2Pin);
+  if (lastLick1 != read1) {
+    lickCount1++;
   }
-}
-// update valve 2
-if (valve2State == 1) {
-  // check to see if enough time has elapsed
-  int tHigh = millis()-valve2Start;
-  if ((tHigh>valve2Dur) || (tHigh<0)|| (tHigh>10000)) {
-    valve2State = 0;
-    digitalWrite(valve2Pin, LOW);
-    valve2Dur = 0;
+  if (lastLick2 != read2) {
+    lickCount2++;
   }
-}
+  lastLick1 = read1;
+  lastLick2 = read2;
 
-static String usbMessage = ""; // initialize usbMessage to empty string,
-                               // happens once at start of program
-while (Serial.available() > 0) {
-  // read next char if available
-  char inByte = Serial.read();
-  if (inByte == '\n') {
-    // the new-line character ('\n') indicates a complete message
-    // so interprete the message and then clear buffer
-    interpretCommand(usbMessage);
-    usbMessage = ""; // clear message buffer
-  } else {
-    // append character to message buffer
-    usbMessage = usbMessage + inByte;
+  // Update valve 1
+  if (valve1State == 1) {
+    // Check to see if enough time has elapsed
+    unsigned long tHigh = millis() - valve1Start; // abs() was causing error here too, switched to if()
+    if ((tHigh > valve1Dur) || (tHigh < 0) || (tHigh > 10000)) {
+      valve1State = 0;
+      digitalWrite(valve1Pin, LOW);
+      valve1Dur = 0;
+    }
   }
-}
-delayMicroseconds(10);
+  // Update valve 2
+  if (valve2State == 1) {
+    // Check to see if enough time has elapsed
+    unsigned long tHigh = millis() - valve2Start;
+    if ((tHigh > valve2Dur) || (tHigh < 0) || (tHigh > 10000)) {
+      valve2State = 0;
+      digitalWrite(valve2Pin, LOW);
+      valve2Dur = 0;
+    }
+  }
+
+  static String usbMessage = ""; // Initialize usbMessage to empty string,
+  while (Serial.available() > 0) {
+    // Read next char if available
+    char inByte = Serial.read();
+    if (inByte == '\n') {
+      // The new-line character ('\n') indicates a complete message
+      // So interpret the message and then clear buffer
+      interpretCommand(usbMessage);
+      usbMessage = ""; // Clear message buffer
+    } else {
+      // Append character to message buffer
+      usbMessage = usbMessage + inByte;
+    }
+  }
+  delayMicroseconds(10);
 
 }
-
