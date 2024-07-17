@@ -19,10 +19,12 @@ int counter = 0;
 double dP;
 double dR;
 double dY;
-double vel_gain = 10.0; // gain from ball rotation to analog out
-int pCum = 0;
-int rCum = 0;
-int yCum = 0;
+double vel_gain = 1; // gain from ball rotation to analog out
+double p_smooth = 0;
+double r_smooth = 0;
+double y_smooth = 0;
+double alpha;
+int tau = 20; // [ms] time constant of exponential filter 
 
 // Cumulative XY readings for debugging
 int x1Cum = 0;
@@ -460,20 +462,22 @@ void loop() {
   analogWrite(rVelPin,dR+2048);
   analogWrite(yVelPin,dY+2048);
 
-  pCum = pCum*0.9 + dP;
-  rCum = rCum*0.9 + dR;
-  yCum = yCum*0.9 + dY;					  
+  alpha = 1 - exp(-elapsedTime/tau);
+  p_smooth = alpha*dP + (1-alpha)*p_smooth;
+  r_smooth = alpha*dR + (1-alpha)*r_smooth;
+  y_smooth = alpha*dY + (1-alpha)*y_smooth;
 
-	x1Cum = x1Cum + xy1dat[0];
-	y1Cum = y1Cum + xy1dat[1];
+	// x1Cum = x1Cum + xy1dat[0];
+	// y1Cum = y1Cum + xy1dat[1];
 	
-	x2Cum = x2Cum + xy2dat[0];
-	y2Cum = y2Cum + xy2dat[1];
+	// x2Cum = x2Cum + xy2dat[0];
+	// y2Cum = y2Cum + xy2dat[1];
   
   // Increment the counter
   counter++;
 
 	Serial.println("Counter = " + String(counter));
+  Serial.println("t = " + String(currentTime));
   Serial.println("dt = " + String(elapsedTime));
 	// Serial.println("Prod1 ID = " + String(adns1_read_reg(Product_ID)));
 	// Serial.println("Prod2 ID = " + String(adns2_read_reg(Product_ID)));
@@ -482,6 +486,10 @@ void loop() {
   Serial.println("dP = " + String(dP));
 	Serial.println("dR = " + String(dR));
   Serial.println("dR = " + String(dY));
+
+  Serial.println("Ps = " + String(p_smooth));
+	Serial.println("Rs = " + String(r_smooth));
+  Serial.println("Ys = " + String(y_smooth));
   // Serial.println("x1 = " + String(xy1dat[0]));
 	// Serial.println("y1 = " + String(xy1dat[1]));
 	// Serial.println("x2 = " + String(xy2dat[0]));
@@ -493,7 +501,7 @@ void loop() {
 	Serial.println("Squal1 = " + String(adns1_read_reg(SQUAL)));
 	Serial.println("Squal2 = " + String(adns2_read_reg(SQUAL)));
 	  
-	delay(10);
+	delay(1);
     
   }
 
