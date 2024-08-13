@@ -15,6 +15,7 @@ int xy2dat[2];
 double dP;
 double dR;
 double dY;
+double vel_gain = 10.0; // gain from ball rotation to analog out
 
 const int ncs1 = 0;
 const int ncs2 = 1;
@@ -466,9 +467,9 @@ void loop() {
   dR = rx1 * xy1dat[0] + ry1 * xy1dat[1] + rx2 * xy2dat[0] + ry2 * xy2dat[1];
   dY = yx1 * xy1dat[0] + yy1 * xy1dat[1] + yx2 * xy2dat[0] + yy2 * xy2dat[1];
 
-  analogWrite(pVelPin, dP + 2048);
-  analogWrite(rVelPin, dR + 2048);
-  analogWrite(yVelPin, dY + 2048);
+  analogWrite(pVelPin,dP*vel_gain+2048);
+  analogWrite(rVelPin,dR*vel_gain+2048);
+  analogWrite(yVelPin,dY*vel_gain+2048);
 
   // Update licks - for some reason abs() was causing error 
   unsigned long read1 = digitalRead(lick1Pin);
