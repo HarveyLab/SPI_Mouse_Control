@@ -359,7 +359,7 @@ void performStartup2(void){
 void dispRegisters(void){
   int oreg[7] = {
     0x00,0x3F,0x2A,0x0F  };
-  char* oregname[] = {
+  const char* oregname[] = {
     "Product_ID","Inverse_Product_ID","SROM_Version","CPI"  };
   byte regres;
 
@@ -383,7 +383,7 @@ void dispRegisters(void){
 void dispRegisters2(void){
   int oreg[7] = {
     0x00,0x3F,0x2A,0x0F  };
-  char* oregname[] = {
+  const char* oregname[] = {
     "Product_ID2","Inverse_Product_ID2","SROM_Version2","CPI2"  };
   byte regres;
 
@@ -404,10 +404,10 @@ void dispRegisters2(void){
   digitalWrite(ncs2,HIGH);
 }
 
-int readXY(int *xy){
+void readXY(int *xy){
   //digitalWrite(ncs,LOW);
   
-  Motion = (adns_read_reg(REG_Motion) & (1 << 8-1)) != 0;
+  Motion = (adns_read_reg(REG_Motion) & (1 << (8-1))) != 0;
   xL = adns_read_reg(REG_Delta_X_L);
   xH = adns_read_reg(REG_Delta_X_H);
   yL = adns_read_reg(REG_Delta_Y_L);
@@ -425,10 +425,10 @@ int readXY(int *xy){
   //digitalWrite(ncs,HIGH);     
 }
 
-int readXY2(int *xy){
+void readXY2(int *xy){
   //digitalWrite(ncs2,LOW);
   
-  Motion = (adns2_read_reg(REG_Motion) & (1 << 8-1)) != 0;
+  Motion = (adns2_read_reg(REG_Motion) & (1 << (8-1))) != 0;
   xL = adns2_read_reg(REG_Delta_X_L);
   xH = adns2_read_reg(REG_Delta_X_H);
   yL = adns2_read_reg(REG_Delta_Y_L);
