@@ -474,15 +474,20 @@ void loop() {
 
 	// Serial.println("Counter = " + String(counter));
 	// Serial.println("dt = " + String(elapsedTime));
+	
 	Serial.println("Prod1 ID = " + String(adns1_read_reg(Product_ID)));
 	Serial.println("Prod2 ID = " + String(adns2_read_reg(Product_ID)));
-	// Serial.println("Mot1 = " + String(Mot1));
-	// Serial.println("Mot2 = " + String(Mot2));
-	Serial.println("intP = " + String(dP));
-	Serial.println("intR = " + String(dR));
-	Serial.println("intY = " + String(dY));
+	Serial.println("intP = " + String(pCum));
+	Serial.println("intR = " + String(rCum));
+	Serial.println("intY = " + String(yCum));
 	Serial.println("Squal1 = " + String(adns1_read_reg(SQUAL)));
 	Serial.println("Squal2 = " + String(adns2_read_reg(SQUAL)));
+	
+	// Serial.println("Mot1 = " + String(Mot1));
+	// Serial.println("Mot2 = " + String(Mot2));
+	// Serial.println("intP = " + String(dP));
+	// Serial.println("intR = " + String(dR));
+	// Serial.println("intY = " + String(dY));
 	  
 	delay(10);
     
