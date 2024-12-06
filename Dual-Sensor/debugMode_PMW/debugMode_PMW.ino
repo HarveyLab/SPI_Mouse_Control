@@ -433,15 +433,14 @@ int convTwosComp(int b){
 
 void loop() {
 
-  currentTime = micros(); // Get the current time in microseconds
-  elapsedTime = currentTime - lastTime; // Calculate the elapsed time
-  lastTime = currentTime; // Update lastTime for the next iteration
+	currentTime = micros(); // Get the current time in microseconds
+	elapsedTime = currentTime - lastTime; // Calculate the elapsed time
+	lastTime = currentTime; // Update lastTime for the next iteration
 
-  Mot1 = (adns1_read_reg(Motion) & (1 << (8-1))) != 0;
-  UpdatePointer1();
-  // delay(10);
-  Mot2 = (adns2_read_reg(Motion) & (1 << (8-1))) != 0;
-  UpdatePointer2();
+	Mot1 = (adns1_read_reg(Motion) & (1 << (8-1))) != 0;
+	UpdatePointer1();
+	Mot2 = (adns2_read_reg(Motion) & (1 << (8-1))) != 0;
+	UpdatePointer2();
 
 	xy1dat[0] = convTwosComp(xy1dat[0]);
 	xy1dat[1] = convTwosComp(xy1dat[1]);
@@ -449,20 +448,20 @@ void loop() {
 	xy2dat[1] = convTwosComp(xy2dat[1]);
 
 	dP = px1*xy1dat[0] + py1*xy1dat[1] + px2*xy2dat[0] + py2*xy2dat[1];
-  dR = rx1*xy1dat[0] + ry1*xy1dat[1] + rx2*xy2dat[0] + ry2*xy2dat[1];
-  dY = yx1*xy1dat[0] + yy1*xy1dat[1] + yx2*xy2dat[0] + yy2*xy2dat[1];
+	dR = rx1*xy1dat[0] + ry1*xy1dat[1] + rx2*xy2dat[0] + ry2*xy2dat[1];
+	dY = yx1*xy1dat[0] + yy1*xy1dat[1] + yx2*xy2dat[0] + yy2*xy2dat[1];
 
-  dP *= vel_gain;
-  dR *= vel_gain;
-  dY *= vel_gain;
+	dP *= vel_gain;
+	dR *= vel_gain;
+	dY *= vel_gain;
 
-  analogWrite(pVelPin,dP+2048);
-  analogWrite(rVelPin,dR+2048);
-  analogWrite(yVelPin,dY+2048);
+	analogWrite(pVelPin,dP+2048);
+	analogWrite(rVelPin,dR+2048);
+	analogWrite(yVelPin,dY+2048);
 
-  pCum = pCum*0.9 + dP;
-  rCum = rCum*0.9 + dR;
-  yCum = yCum*0.9 + dY;					  
+	pCum = pCum*0.9 + dP;
+	rCum = rCum*0.9 + dR;
+	yCum = yCum*0.9 + dY;					  
 
 	x1Cum = x1Cum + xy1dat[0];
 	y1Cum = y1Cum + xy1dat[1];
@@ -470,30 +469,22 @@ void loop() {
 	x2Cum = x2Cum + xy2dat[0];
 	y2Cum = y2Cum + xy2dat[1];
   
-  // Increment the counter
-  counter++;
+	// Increment the counter
+	counter++;
 
-	Serial.println("Counter = " + String(counter));
-  Serial.println("dt = " + String(elapsedTime));
-	// Serial.println("Prod1 ID = " + String(adns1_read_reg(Product_ID)));
-	// Serial.println("Prod2 ID = " + String(adns2_read_reg(Product_ID)));
+	// Serial.println("Counter = " + String(counter));
+	// Serial.println("dt = " + String(elapsedTime));
+	Serial.println("Prod1 ID = " + String(adns1_read_reg(Product_ID)));
+	Serial.println("Prod2 ID = " + String(adns2_read_reg(Product_ID)));
 	// Serial.println("Mot1 = " + String(Mot1));
 	// Serial.println("Mot2 = " + String(Mot2));
-  Serial.println("dP = " + String(dP));
-	Serial.println("dR = " + String(dR));
-  Serial.println("dR = " + String(dY));
-  // Serial.println("x1 = " + String(xy1dat[0]));
-	// Serial.println("y1 = " + String(xy1dat[1]));
-	// Serial.println("x2 = " + String(xy2dat[0]));
-	// Serial.println("y2 = " + String(xy2dat[1]));
-	// Serial.println("x1Cum = " + String(x1Cum));
-	// Serial.println("y1Cum = " + String(y1Cum));
-	// Serial.println("x2Cum = " + String(x2Cum));
-	// Serial.println("y2Cum = " + String(y2Cum));
+	Serial.println("intP = " + String(dP));
+	Serial.println("intR = " + String(dR));
+	Serial.println("intY = " + String(dY));
 	Serial.println("Squal1 = " + String(adns1_read_reg(SQUAL)));
 	Serial.println("Squal2 = " + String(adns2_read_reg(SQUAL)));
 	  
-	delay(100);
+	delay(10);
     
   }
 
