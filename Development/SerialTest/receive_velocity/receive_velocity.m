@@ -1,8 +1,8 @@
 function receive_velocity
     % Define the serial port object
     % Adjust 'COM3' to your specific port
-    serialPort = 'COM4'; 
-    baudRate = 9600; % Set baud rate to match Teensy's configuration
+    % serialPort = 'COM4'; 
+    % baudRate = 9600; % Set baud rate to match Teensy's configuration
     
     dt = 10;
     tau = 20;
@@ -26,34 +26,30 @@ function receive_velocity
 
     % Read data from the serial port
     while size(D,1) <= numDataPoints
-        % flushinput(s);
-        fprintf(s,'000000');
-        k = 1;
-        data = [];
-        while s.BytesAvailable>0
-            for k = 1:7
-                temp = fgetl(s);
-                val_str = strsplit(temp,' = ');
-                if k==1 && ~strcmp(val_str{1},'Counter')
-                    break
-                end
-                data(k) = str2double(val_str{2});
-            end
-            data
-            D = [D;data];
+        % if s.BytesAvailable>0
             flushinput(s);
-        end
+            fprintf(s,'000000');
+            % write(s,"000000","string");
+            d = parseTeensyMessage(fgetl(s));
+            % mvData = [];
+            d_vec = [d.dp d.dr d.dy d.l1 d.l2 d.v1 d.v2 d.dta d.dtmsg]
+            D = [D;d_vec];
+            % mvData = [D;d.dp, d.dr, d.dy];
+            % flushinput(s);
+            size(D,1)
+        % end
     end
 
     % D
     figure;
-    stem(diff(D(:,1)))
+    stem(D(2:end,9))
     
-    t = D(:,2);
-    p = D(:,3);
-    r = D(:,4);
-    y = D(:,5);
-    v = D(:,[3:5]);
+    % t = D(:,2);
+    t = cumsum(D(:,9)) - D(1,9);
+    p = D(:,1);
+    r = D(:,2);
+    y = D(:,3);
+    v = D(:,1:3);
     
     alpha = 1;
     v_smooth = zeros(size(v));
@@ -62,8 +58,11 @@ function receive_velocity
     end
     
     figure;hold on;
+    subplot(3,1,1);
     plot(t,v_smooth(:,1),'b-');
+    subplot(3,1,2);
     plot(t,v_smooth(:,2),'r-');
+    subplot(3,1,3);
     plot(t,v_smooth(:,3),'g-');
     
     v_area = trapz(t, v) * 1e-6
