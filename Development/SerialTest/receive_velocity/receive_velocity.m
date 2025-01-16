@@ -51,9 +51,12 @@ function receive_velocity
     y = D(:,3);
     v = D(:,1:3);
     
-    alpha = 1;
+    % alpha = 1;
     v_smooth = zeros(size(v));
+    tau = 50; % [ms]
     for n = 2:numDataPoints
+        dt = D(n,8);
+        alpha = 1 - exp(-dt / tau);
         v_smooth(n,:) = alpha * v(n,:) + (1 - alpha) * v(n-1,:);
     end
     
