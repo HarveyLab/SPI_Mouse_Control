@@ -369,12 +369,12 @@ void dispRegisters(void){
   for(rctr=0; rctr<4; rctr++){
     SPI.transfer(oreg[rctr]);
     delay(1);
-    // Serial.println("---");
-    // Serial.println(oregname[rctr]);
-    // Serial.println(oreg[rctr],HEX);
+    Serial.println("---");
+    Serial.println(oregname[rctr]);
+    Serial.println(oreg[rctr],HEX);
     regres = SPI.transfer(0);
-    // // Serial.println(regres,BIN);  
-    // Serial.println(regres,HEX);  
+    Serial.println(regres,BIN);  
+    Serial.println(regres,HEX);  
     delay(1);
   }
   digitalWrite(ncs,HIGH);
@@ -393,12 +393,12 @@ void dispRegisters2(void){
   for(rctr=0; rctr<4; rctr++){
     SPI.transfer(oreg[rctr]);
     delay(1);
-    // Serial.println("---");
-    // Serial.println(oregname[rctr]);
-    // Serial.println(oreg[rctr],HEX);
+    Serial.println("---");
+    Serial.println(oregname[rctr]);
+    Serial.println(oreg[rctr],HEX);
     regres = SPI.transfer(0);
-    // Serial.println(regres,BIN);  
-    // Serial.println(regres,HEX);  
+    Serial.println(regres,BIN);  
+    Serial.println(regres,HEX);  
     delay(1);
   }
   digitalWrite(ncs2,HIGH);
@@ -479,6 +479,7 @@ void interpretCommand(String message) {
 
   // construct data string
   String dataString = "dp,"+String(dP,3)+",dr,"+String(dR,3)+",dy,"+String(dY,3)+",l1,"+String(lickCount1)+",l2,"+String(lickCount2)+",v1,"+String(valve1State)+",v2,"+String(valve2State)+",dta,"+String(dt)+",dtmsg,"+String(millis()-lastMsgTime);
+  // String dataString = "dp," + String(dP, 3) + ",dr," + String(dR, 3) + ",dy," + String(dY, 3) + ",l1," + String(lickCount1) + ",l2," + String(lickCount2) + ",v1," + String(valve1State) + ",v2," + String(valve2State) + ",dta," + String(dt) + ",dtmsg," + String(millis() - lastMsgTime);
 
 // send message
   Serial.println(dataString);
@@ -496,6 +497,7 @@ void loop() {
 
   readXY(&xydat[0]);
   readXY2(&xy2dat[0]);
+  
   dP = px1*xydat[0] + py1*xydat[1] + px2*xy2dat[0] + py2*xy2dat[1];
   dR = rx1*xydat[0] + ry1*xydat[1] + rx2*xy2dat[0] + ry2*xy2dat[1];
   dY = yx1*xydat[0] + yy1*xydat[1] + yx2*xy2dat[0] + yy2*xy2dat[1];
@@ -504,8 +506,8 @@ void loop() {
   analogWrite(yVelPin,dY+2048);
 
 // update licks - for some readson abs() was causing error 
-int read1 = digitalRead(lick1Pin);
-int read2 = digitalRead(lick2Pin);
+unsigned int read1 = digitalRead(lick1Pin);
+unsigned int read2 = digitalRead(lick2Pin);
 if (lastLick1 != read1) {
   lickCount1 = lickCount1 + 1;
 }
@@ -518,7 +520,7 @@ lastLick2 = read2;
 // update valve 1
 if (valve1State == 1) {
   // check to see if enough time has elapsed
-  int tHigh = millis()-valve1Start; // abs() was causing error here too, switched to if()
+  unsigned long tHigh = millis()-valve1Start; // abs() was causing error here too, switched to if()
   if ((tHigh>valve1Dur) || (tHigh<0) || (tHigh>10000)) {
     valve1State = 0;
     digitalWrite(valve1Pin, LOW);
@@ -528,7 +530,7 @@ if (valve1State == 1) {
 // update valve 2
 if (valve2State == 1) {
   // check to see if enough time has elapsed
-  int tHigh = millis()-valve2Start;
+  unsigned long tHigh = millis()-valve2Start;
   if ((tHigh>valve2Dur) || (tHigh<0)|| (tHigh>10000)) {
     valve2State = 0;
     digitalWrite(valve2Pin, LOW);
