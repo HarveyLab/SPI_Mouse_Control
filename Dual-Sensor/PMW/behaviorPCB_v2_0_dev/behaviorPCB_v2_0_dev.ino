@@ -468,7 +468,7 @@ void interpretCommand(String message) {
 //     }
 // }
 
-void readXY1(int *xy){  
+void readXY1(void){  
   digitalWrite(ncs1, LOW);
   adns1_write_reg(REG_Motion, 0x01);
   // adns1_read_reg(REG_Motion);
@@ -478,19 +478,19 @@ void readXY1(int *xy){
   xH = adns1_read_reg(REG_Delta_X_H);
   yL = adns1_read_reg(REG_Delta_Y_L);
   yH = adns1_read_reg(REG_Delta_Y_H);
-  xy[0] = (xH << 8) + xL;
-  xy[1] = (yH << 8) + yL;
+  xy1dat[0] = (xH << 8) + xL;
+  xy1dat[1] = (yH << 8) + yL;
 
-  if(xy[0] & 0x8000){
-    xy[0] = -1 * ((xy[0] ^ 0xffff) + 1);
+  if(xy1dat[0] & 0x8000){
+    xy1dat[0] = -1 * ((xy[0] ^ 0xffff) + 1);
   }
-  if (xy[1] & 0x8000){
-    xy[1] = -1 * ((xy[1] ^ 0xffff) + 1);
+  if (xy1dat[1] & 0x8000){
+    xy1dat[1] = -1 * ((xy[1] ^ 0xffff) + 1);
   }
   digitalWrite(ncs1, HIGH);
 }
 
-void readXY2(int *xy){
+void readXY2(void){
   digitalWrite(ncs2,LOW);
   adns2_write_reg(REG_Motion, 0x01);
   
@@ -499,14 +499,14 @@ void readXY2(int *xy){
   xH = adns2_read_reg(REG_Delta_X_H);
   yL = adns2_read_reg(REG_Delta_Y_L);
   yH = adns2_read_reg(REG_Delta_Y_H);
-  xy[0] = (xH << 8) + xL;
-  xy[1] = (yH << 8) + yL;
+  xy2dat[0] = (xH << 8) + xL;
+  xy2dat[1] = (yH << 8) + yL;
 
-  if(xy[0] & 0x8000){
-    xy[0] = -1 * ((xy[0] ^ 0xffff) + 1);
+  if(xy2dat[0] & 0x8000){
+    xy2dat[0] = -1 * ((xy[0] ^ 0xffff) + 1);
   }
-  if (xy[1] & 0x8000){
-    xy[1] = -1 * ((xy[1] ^ 0xffff) + 1);
+  if (xy2dat[1] & 0x8000){
+    xy2dat[1] = -1 * ((xy[1] ^ 0xffff) + 1);
   }
   digitalWrite(ncs2,HIGH);     
 }
@@ -525,8 +525,8 @@ void loop() {
   // xy2dat[1] = convTwosComp(xy2dat[1]);
 
   // Read motion data from both sensors
-  readXY1(&xy1dat[0]); // Sensor 1
-  readXY2(&xy2dat[0]); // Sensor 2
+  readXY1(); // Sensor 1
+  readXY2(); // Sensor 2
 
   dP = px1 * xy1dat[0] + py1 * xy1dat[1] + px2 * xy2dat[0] + py2 * xy2dat[1];
   dR = rx1 * xy1dat[0] + ry1 * xy1dat[1] + rx2 * xy2dat[0] + ry2 * xy2dat[1];
