@@ -451,10 +451,10 @@ void interpretCommand(String message) {
 // }
 
 void readXY(int *xy, int sensor) {
-    byte xL = (sensor == 1) ? adns_read_reg(REG_Delta_X_L) : adns2_read_reg(REG_Delta_X_L);
-    byte xH = (sensor == 1) ? adns_read_reg(REG_Delta_X_H) : adns2_read_reg(REG_Delta_X_H);
-    byte yL = (sensor == 1) ? adns_read_reg(REG_Delta_Y_L) : adns2_read_reg(REG_Delta_Y_L);
-    byte yH = (sensor == 1) ? adns_read_reg(REG_Delta_Y_H) : adns2_read_reg(REG_Delta_Y_H);
+    byte xL = (sensor == 1) ? adns1_read_reg(REG_Delta_X_L) : adns2_read_reg(REG_Delta_X_L);
+    byte xH = (sensor == 1) ? adns1_read_reg(REG_Delta_X_H) : adns2_read_reg(REG_Delta_X_H);
+    byte yL = (sensor == 1) ? adns1_read_reg(REG_Delta_Y_L) : adns2_read_reg(REG_Delta_Y_L);
+    byte yH = (sensor == 1) ? adns1_read_reg(REG_Delta_Y_H) : adns2_read_reg(REG_Delta_Y_H);
 
     xy[0] = (xH << 8) | xL;
     xy[1] = (yH << 8) | yL;
