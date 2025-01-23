@@ -377,31 +377,31 @@ void dispRegisters2() {
   digitalWrite(ncs2,HIGH);
 }
 
-void UpdatePointer1(void) {
-  if (initComplete == 9) {
-    digitalWrite(ncs1, LOW);
-    adns1_write_reg(REG_Motion, 0x01);
-    adns1_read_reg(REG_Motion);
+// void UpdatePointer1(void) {
+//   if (initComplete == 9) {
+//     digitalWrite(ncs1, LOW);
+//     adns1_write_reg(REG_Motion, 0x01);
+//     adns1_read_reg(REG_Motion);
 
-    xy1dat[0] = (int)adns1_read_reg(REG_Delta_X_L);
-    xy1dat[1] = (int)adns1_read_reg(REG_Delta_Y_L);
+//     xy1dat[0] = (int)adns1_read_reg(REG_Delta_X_L);
+//     xy1dat[1] = (int)adns1_read_reg(REG_Delta_Y_L);
 
-    digitalWrite(ncs1, HIGH);
-  }
-}
+//     digitalWrite(ncs1, HIGH);
+//   }
+// }
 
-void UpdatePointer2(void) {
-  if (initComplete == 9) {
-    digitalWrite(ncs2, LOW);
-    adns2_write_reg(REG_Motion, 0x01);
-    adns2_read_reg(REG_Motion);
+// void UpdatePointer2(void) {
+//   if (initComplete == 9) {
+//     digitalWrite(ncs2, LOW);
+//     adns2_write_reg(REG_Motion, 0x01);
+//     adns2_read_reg(REG_Motion);
 
-    xy2dat[0] = (int)adns2_read_reg(REG_Delta_X_L);
-    xy2dat[1] = (int)adns2_read_reg(REG_Delta_Y_L);
+//     xy2dat[0] = (int)adns2_read_reg(REG_Delta_X_L);
+//     xy2dat[1] = (int)adns2_read_reg(REG_Delta_Y_L);
 
-    digitalWrite(ncs2, HIGH);
-  }
-}
+//     digitalWrite(ncs2, HIGH);
+//   }
+// }
 
 void interpretCommand(String message) {
   message.trim(); // Remove leading and trailing white space
@@ -442,12 +442,30 @@ void interpretCommand(String message) {
   lickCount2 = 0;
 }
 
-int convTwosComp(int b) {
-  // Convert from 2's complement
-  if (b & 0x80) {
-    b = -1 * ((b ^ 0xff) + 1);
-  }
-  return b;
+// int convTwosComp(int b) {
+//   // Convert from 2's complement
+//   if (b & 0x80) {
+//     b = -1 * ((b ^ 0xff) + 1);
+//   }
+//   return b;
+// }
+
+void readXY(int *xy, int sensor) {
+    byte xL = (sensor == 1) ? adns_read_reg(REG_Delta_X_L) : adns2_read_reg(REG_Delta_X_L);
+    byte xH = (sensor == 1) ? adns_read_reg(REG_Delta_X_H) : adns2_read_reg(REG_Delta_X_H);
+    byte yL = (sensor == 1) ? adns_read_reg(REG_Delta_Y_L) : adns2_read_reg(REG_Delta_Y_L);
+    byte yH = (sensor == 1) ? adns_read_reg(REG_Delta_Y_H) : adns2_read_reg(REG_Delta_Y_H);
+
+    xy[0] = (xH << 8) | xL;
+    xy[1] = (yH << 8) | yL;
+
+    // Convert from 2's complement for signed values
+    if (xy[0] & 0x8000) {
+        xy[0] = xy[0] - 0x10000;
+    }
+    if (xy[1] & 0x8000) {
+        xy[1] = xy[1] - 0x10000;
+    }
 }
 
 void loop() {
@@ -455,13 +473,20 @@ void loop() {
   dt = micros() - absTime;
   absTime = micros();
 
-  UpdatePointer1();
-  UpdatePointer2();
+  // UpdatePointer1();
+  // UpdatePointer2();
 
-  xy1dat[0] = convTwosComp(xy1dat[0]);
-  xy1dat[1] = convTwosComp(xy1dat[1]);
-  xy2dat[0] = convTwosComp(xy2dat[0]);
-  xy2dat[1] = convTwosComp(xy2dat[1]);
+  // xy1dat[0] = convTwosComp(xy1dat[0]);
+  // xy1dat[1] = convTwosComp(xy1dat[1]);
+  // xy2dat[0] = convTwosComp(xy2dat[0]);
+  // xy2dat[1] = convTwosComp(xy2dat[1]);
+
+  int xy1dat[2];
+  int xy2dat[2];
+
+  // Read motion data from both sensors
+  readXY(&xy1dat[0], 1); // Sensor 1
+  readXY(&xy2dat[0], 2); // Sensor 2
 
   dP = px1 * xy1dat[0] + py1 * xy1dat[1] + px2 * xy2dat[0] + py2 * xy2dat[1];
   dR = rx1 * xy1dat[0] + ry1 * xy1dat[1] + rx2 * xy2dat[0] + ry2 * xy2dat[1];
