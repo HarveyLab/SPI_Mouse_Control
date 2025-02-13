@@ -22,7 +22,7 @@ function receive_velocity
     cleanupObj = onCleanup(@() cleanupFunction(s));
 
     % Set the number of data points to read (adjust as needed)
-    numDataPoints = 1e3;
+    numDataPoints = 1000;
 
     % Read data from the serial port
     while size(D,1) <= numDataPoints
@@ -55,18 +55,22 @@ function receive_velocity
     v_smooth = zeros(size(v));
     tau = 50; % [ms]
     for n = 2:numDataPoints
-        dt = D(n,8);
+        dt = D(n,9);
         alpha = 1 - exp(-dt / tau);
         v_smooth(n,:) = alpha * v(n,:) + (1 - alpha) * v(n-1,:);
     end
     
     figure;hold on;
+    y_lim = 500;
     subplot(3,1,1);
     plot(t,v_smooth(:,1),'b-');
+    ylim([-y_lim y_lim])
     subplot(3,1,2);
     plot(t,v_smooth(:,2),'r-');
+    ylim([-y_lim y_lim])
     subplot(3,1,3);
     plot(t,v_smooth(:,3),'g-');
+    ylim([-y_lim y_lim])
     
     v_area = trapz(t, v) * 1e-6
     
