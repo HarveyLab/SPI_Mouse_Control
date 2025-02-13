@@ -482,10 +482,10 @@ void readXY1(void){
   xy1dat[1] = (yH << 8) + yL;
 
   if(xy1dat[0] & 0x8000){
-    xy1dat[0] = -1 * ((xy[0] ^ 0xffff) + 1);
+    xy1dat[0] = -1 * ((xy1dat[0] ^ 0xffff) + 1);
   }
   if (xy1dat[1] & 0x8000){
-    xy1dat[1] = -1 * ((xy[1] ^ 0xffff) + 1);
+    xy1dat[1] = -1 * ((xy1dat[1] ^ 0xffff) + 1);
   }
   digitalWrite(ncs1, HIGH);
 }
@@ -503,10 +503,10 @@ void readXY2(void){
   xy2dat[1] = (yH << 8) + yL;
 
   if(xy2dat[0] & 0x8000){
-    xy2dat[0] = -1 * ((xy[0] ^ 0xffff) + 1);
+    xy2dat[0] = -1 * ((xy2dat[0] ^ 0xffff) + 1);
   }
   if (xy2dat[1] & 0x8000){
-    xy2dat[1] = -1 * ((xy[1] ^ 0xffff) + 1);
+    xy2dat[1] = -1 * ((xy2dat[1] ^ 0xffff) + 1);
   }
   digitalWrite(ncs2,HIGH);     
 }
